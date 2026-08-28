@@ -1,7 +1,7 @@
 from django.urls import path
-from . import views
-from .views.dashboard import DashboardView
+from apps.core.views import DashboardView, PlayerProfileView
 
 urlpatterns = [
     path("", DashboardView.as_view(), name="dashboard"),
+    path("players/<int:pk>/", PlayerProfileView.as_view(), name="player-profile"),
 ]
