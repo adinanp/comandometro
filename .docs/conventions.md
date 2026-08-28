@@ -47,21 +47,56 @@ guard de `DEBUG`).
 
 Views não orquestram regra de negócio direto — isso vive numa camada de
 use cases, **sem introduzir DDD, hexagonal ou uma abstração pesada**, só
-uma camada fina de funções, seguindo a mesma convenção de "pacote de
+uma camada fina de classes, seguindo a mesma convenção de "pacote de
 arquivos" já usada em `models/` e `views/`:
 
 - `apps/core/use_cases/` é um pacote, um módulo por caso de uso — ex:
   [`apps/core/use_cases/dashboard_stats.py`](../apps/core/use_cases/dashboard_stats.py)
-  com a função `get_dashboard_stats() -> dict`, que concentra o que antes
-  estava em `DashboardView.get_context_data` (ranking de jogadores, win
-  rate, porcentagem de wincon, MVP).
-- `apps/core/use_cases/__init__.py` reexporta as funções públicas, do
+  com a classe `DashboardStatsUseCase`, que concentra o que antes estava
+  em `DashboardView.get_context_data` (ranking de jogadores, win rate,
+  porcentagem de wincon, MVP).
+- `apps/core/use_cases/__init__.py` reexporta as classes públicas, do
   mesmo jeito que `models/__init__.py` e `views/__init__.py` já fazem.
-- Regra de ouro: a view só chama o use case e monta o `context` —
+- Todo use case herda de
+  [`apps.shared.use_cases.BaseUseCase`](../apps/shared/use_cases/base.py)
+  (ver seção abaixo) e implementa `perform_request()`.
+- Regra de ouro: a view só instancia o use case e chama `.execute()` —
   nenhuma query/aggregate direto na view.
+
+```python
+class DashboardView(TemplateView):
+    template_name = "core/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(DashboardStatsUseCase().execute())
+        return context
+```
 
 Ao adicionar uma tela nova com lógica de agregação não trivial, siga esse
 mesmo formato em vez de colocar a query direto em `get_context_data`.
+
+## Pacote `shared/` — código comum entre apps
+
+`apps/shared/` existe pra código que qualquer app do projeto pode
+precisar, sem pertencer à regra de negócio de nenhum app específico. Hoje
+tem só uma coisa: `apps/shared/use_cases/base.py`, com a classe
+`BaseUseCase`:
+
+- `perform_request()` é abstrato (`@abstractmethod`) — toda subclasse é
+  obrigada a implementar, senão nem instancia (`ABC` bloqueia isso em
+  tempo de execução).
+- `execute()` é o único método público. Ele loga início, sucesso/erro e
+  fim, chama `perform_request()` dentro de um `try/except/finally`, e
+  relança qualquer exceção depois de logar (`logger.exception`) — quem
+  chama o use case decide o que fazer com o erro, o use case só garante
+  que ele fica registrado.
+
+Nenhum use case deve implementar sua própria lógica de logging/try-except
+ao redor da chamada principal — isso é responsabilidade do `BaseUseCase`,
+não de cada subclasse. Se `apps/shared/` crescer (outros mixins, base
+classes, utilitários), ele segue a mesma regra de "pacote de arquivos":
+uma pasta por concern, nunca um `utils.py` genérico acumulando tudo.
 
 ## Anti-objetivo explícito
 

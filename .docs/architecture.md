@@ -33,14 +33,12 @@ esquecimento, é porque eles não têm nenhuma regra a proteger.
 Hoje existe uma única view no projeto:
 [`DashboardView(TemplateView)`](../apps/core/views/dashboard.py),
 sobrescrevendo `get_context_data`. A view não faz nenhuma query nem
-agregação diretamente — ela só chama
-[`get_dashboard_stats()`](../apps/core/use_cases/dashboard_stats.py) e
-joga o resultado no `context`:
+agregação diretamente — ela só instancia o use case e chama `.execute()`:
 
 ```python
 def get_context_data(self, **kwargs):
     context = super().get_context_data(**kwargs)
-    context.update(get_dashboard_stats())
+    context.update(DashboardStatsUseCase().execute())
     return context
 ```
 
@@ -49,12 +47,16 @@ def get_context_data(self, **kwargs):
 Toda a agregação do dashboard (ranking de jogadores, win rate %,
 porcentagem de wincon, MVP) vive em
 [`apps/core/use_cases/dashboard_stats.py`](../apps/core/use_cases/dashboard_stats.py),
-na função `get_dashboard_stats() -> dict`. É a implementação real da
-convenção descrita em [conventions.md](./conventions.md): um pacote
-`use_cases/` com um módulo por caso de uso, reexportado em
-`use_cases/__init__.py`, do mesmo jeito que `models/` e `views/` já
-funcionam. Ao adicionar uma tela nova com lógica não trivial, o padrão é
-esse: escrever o use case primeiro, a view só chama e monta o contexto.
+na classe `DashboardStatsUseCase(BaseUseCase)`, implementando
+`perform_request() -> dict`. É a implementação real da convenção descrita
+em [conventions.md](./conventions.md): um pacote `use_cases/` com um
+módulo por caso de uso, reexportado em `use_cases/__init__.py`, do mesmo
+jeito que `models/` e `views/` já funcionam — e toda classe herda de
+[`apps.shared.use_cases.BaseUseCase`](../apps/shared/use_cases/base.py),
+que centraliza o logging de início/sucesso/erro/fim em `execute()`. Ao
+adicionar uma tela nova com lógica não trivial, o padrão é esse: escrever
+o use case primeiro (herdando de `BaseUseCase`), a view só instancia e
+chama `.execute()`.
 
 ## Admin: padrões reutilizáveis
 

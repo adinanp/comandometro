@@ -1,5 +1,5 @@
 from django.views.generic import TemplateView
-from apps.core.use_cases import get_dashboard_stats
+from apps.core.use_cases import DashboardStatsUseCase
 
 
 class DashboardView(TemplateView):
@@ -7,5 +7,5 @@ class DashboardView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(get_dashboard_stats())
+        context.update(DashboardStatsUseCase().execute())
         return context

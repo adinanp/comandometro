@@ -16,6 +16,12 @@ faz I/O externo (rede, arquivo, banco em lote).
 cartas encontradas, quantas foram criadas/atualizadas, e captura falhas de
 rede com `logger.exception` antes de relançar.
 
+Todo use case já ganha esse logging de graça: `execute()` em
+[`BaseUseCase`](../apps/shared/use_cases/base.py) loga início, sucesso/erro
+e fim automaticamente, então nenhuma subclasse deve reimplementar seu
+próprio try/except de logging ao redor da chamada principal — só
+implementar `perform_request()` com a lógica de verdade.
+
 `self.stdout.write(...)` em management commands continua existindo — é o
 canal certo pra feedback de CLI pra quem está rodando o comando na mão.
 Logging é complementar, não substitui isso.
