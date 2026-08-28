@@ -37,12 +37,25 @@ class PlayerProfileInline(admin.StackedInline):
 class GameParticipantInline(admin.TabularInline):
     model = GameParticipant
     extra = 4
-    autocomplete_fields = ["player", "mvp_card"]
-    fields = ("player", "deck", "placement", "kill_count", "mvp_card")
+    autocomplete_fields = ["player", "mvp_card", "biggest_creature"]
+    fields = (
+        "player",
+        "deck",
+        "placement",
+        "kill_count",
+        "mvp_card",
+        "peak_life_total",
+        "board_wipes_count",
+        "counterspell_count",
+        "complaint_count",
+        "is_self_elimination",
+        "biggest_creature",
+        "biggest_creature_power",
+    )
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
-        if db_field.name == "mvp_card":
+        if db_field.name in ("mvp_card", "biggest_creature"):
             formfield.widget.can_add_related = False
         return formfield
 
@@ -135,6 +148,7 @@ class GameAdmin(admin.ModelAdmin):
         "get_game_title",
         "date",
         "win_condition",
+        "turn_count",
         "get_winner",
         "created_at",
     )
