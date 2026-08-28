@@ -85,12 +85,16 @@ class Command(BaseCommand):
             except (ValueError, TypeError):
                 mana_value = 0
 
+            identifiers = card_info.get("identifiers", {})
+            scryfall_id = identifiers.get("scryfallId", "")
+
             if card_name in existing_cards:
                 obj = existing_cards[card_name]
                 obj.color_identity = color_identity
                 obj.mana_value = mana_value
                 obj.is_commander_eligible = is_commander_eligible
                 obj.is_partner_eligible = is_partner_eligible
+                obj.scryfall_id = scryfall_id
                 cards_to_update.append(obj)
             else:
                 cards_to_create.append(
@@ -100,6 +104,7 @@ class Command(BaseCommand):
                         mana_value=mana_value,
                         is_commander_eligible=is_commander_eligible,
                         is_partner_eligible=is_partner_eligible,
+                        scryfall_id=scryfall_id,
                     )
                 )
 
@@ -119,6 +124,7 @@ class Command(BaseCommand):
                     "mana_value",
                     "is_commander_eligible",
                     "is_partner_eligible",
+                    "scryfall_id",
                 ],
                 batch_size=2000,
             )
