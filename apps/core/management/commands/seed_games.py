@@ -172,6 +172,7 @@ class Command(BaseCommand):
                 date=game_date,
                 win_condition=random.choice(WIN_CONDITIONS),
                 notes="Partida gerada via CLI.",
+                turn_count=random.randint(4, 14),
             )
 
             placements = list(range(1, len(valid_participants) + 1))
@@ -181,6 +182,11 @@ class Command(BaseCommand):
                 placement = placements[idx]
                 mvp_card = (
                     random.choice(cards) if cards and random.random() > 0.4 else None
+                )
+                has_biggest_creature = cards and random.random() > 0.7
+                biggest_creature = random.choice(cards) if has_biggest_creature else None
+                biggest_creature_power = (
+                    random.randint(3, 15) if has_biggest_creature else None
                 )
 
                 GameParticipant.objects.create(
@@ -192,6 +198,13 @@ class Command(BaseCommand):
                         random.randint(0, 3) if placement == 1 else random.randint(0, 1)
                     ),
                     mvp_card=mvp_card,
+                    peak_life_total=random.choice([None, random.randint(20, 120)]),
+                    board_wipes_count=random.choice([0, 0, 0, 1, 2]),
+                    counterspell_count=random.choice([0, 0, 1, 2]),
+                    complaint_count=random.choice([0, 0, 0, 1, 2, 3]),
+                    is_self_elimination=random.random() < 0.05,
+                    biggest_creature=biggest_creature,
+                    biggest_creature_power=biggest_creature_power,
                 )
             games_created += 1
 
