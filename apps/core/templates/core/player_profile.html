@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">{{ player.name }}</h1>
+    <p class="text-sm text-gray-500">Perfil do jogador</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="p-4 bg-white border border-gray-200 rounded-xl">
+      <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">PARTIDAS</span>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_games }}</p>
+    </div>
+    <div class="p-4 bg-white border border-gray-200 rounded-xl">
+      <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">VITÓRIAS</span>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ wins }}</p>
+    </div>
+    <div class="p-4 bg-white border border-gray-200 rounded-xl">
+      <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">WIN RATE</span>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ win_rate }}%</p>
+    </div>
+    <div class="p-4 bg-white border border-gray-200 rounded-xl">
+      <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">PONTOS (4-2-1-0)</span>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ points }}</p>
+    </div>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">COMANDANTES PILOTADOS</h2>
+    </div>
+    <div class="divide-y divide-gray-100">
+      {% for row in commander_stats %}
+      <div class="p-4 flex items-center justify-between text-sm">
+        <span class="font-medium text-gray-700">{{ row.deck.display_commanders|default:"Sem comandante" }}</span>
+        <span class="text-gray-500">{{ row.games }} jogos</span>
+        <span class="font-bold text-gray-900">{{ row.wins }} vitórias ({{ row.win_rate }}%)</span>
+      </div>
+      {% empty %}
+      <div class="p-4 text-center text-xs text-gray-400">Nenhum deck cadastrado ainda.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">RECORDES PESSOAIS</h2>
+    </div>
+    <div class="divide-y divide-gray-100 text-sm">
+      <div class="p-4 flex items-center justify-between">
+        <span class="text-gray-500">Board wipes numa partida</span>
+        <span class="font-semibold text-gray-900">
+          {% if records.board_wipes %}{{ records.board_wipes.board_wipes_count }}{% else %}-{% endif %}
+        </span>
+      </div>
+      <div class="p-4 flex items-center justify-between">
+        <span class="text-gray-500">Counterspells numa partida</span>
+        <span class="font-semibold text-gray-900">
+          {% if records.counterspells %}{{ records.counterspells.counterspell_count }}{% else %}-{% endif %}
+        </span>
+      </div>
+      <div class="p-4 flex items-center justify-between">
+        <span class="text-gray-500">Reclamações numa partida</span>
+        <span class="font-semibold text-gray-900">
+          {% if records.complaints %}{{ records.complaints.complaint_count }}{% else %}-{% endif %}
+        </span>
+      </div>
+      <div class="p-4 flex items-center justify-between">
+        <span class="text-gray-500">Vida de pico numa partida</span>
+        <span class="font-semibold text-gray-900">
+          {% if records.most_life %}{{ records.most_life.peak_life_total }}{% else %}-{% endif %}
+        </span>
+      </div>
+      <div class="p-4 flex items-center justify-between">
+        <span class="text-gray-500">Maior criatura (poder alcançado)</span>
+        <span class="font-semibold text-gray-900">
+          {% if records.biggest_creature %}{{ records.biggest_creature.biggest_creature.name }} ({{ records.biggest_creature.biggest_creature_power }}){% else %}-{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
