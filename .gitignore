@@ -1,0 +1,73 @@
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+bin/
+include/
+lib/
+lib64/
+share/
+
+# Cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Env Files
+.env
+.env.local
+.env.*.local
+
+# SQLite database files
+*.sqlite3
+*.db
+
+# Statics
+/static/
+/staticfiles/
+/media/
+
+# Logs
+*.log
+logs/
+
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# PyCharm / JetBrains
+.idea/
+
+# Mac OS / Windows
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Linting & Tests
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pylintcache

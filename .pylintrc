@@ -1,0 +1,8 @@
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,  # C0114: Falta docstring no módulo/arquivo
+    missing-class-docstring,   # C0115: Falta docstring na classe
+    missing-function-docstring # C0116: (Opcional) Falta docstring em funções/métodos
+
+[MASTER]
+    load-plugins=pylint_django
