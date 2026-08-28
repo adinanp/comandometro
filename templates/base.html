@@ -1,9 +1,66 @@
 <!doctype html>
-<html lang="pt-br">
+<html lang="pt-br" class="h-full bg-[#FAFAFA]">
   <head>
-    <title>Comandômetro</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comandometro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonte Inter (Estilo Cal.com) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
   </head>
-  <body>
-    <main>{% block content %}{% endblock %}</main>
+  <body
+    class="h-full flex flex-col font-sans antialiased text-gray-900 bg-[#FAFAFA]"
+  >
+    <!-- Navbar Cal.com Style -->
+    <header class="border-b border-gray-200 bg-white sticky top-0 z-50">
+      <div
+        class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-bold text-sm"
+          >
+            C
+          </div>
+          <span class="text-base font-semibold text-gray-900"
+            >Comandometro</span
+          >
+          <span
+            class="text-xs font-medium px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 border border-gray-200"
+          >
+            v0.1
+          </span>
+        </div>
+        <nav class="flex items-center gap-6 text-sm font-medium text-gray-600">
+          <a
+            href="{% url 'core:dashboard' %}"
+            class="text-gray-900 font-semibold"
+            >Dashboard</a
+          >
+          <a href="/admin/" class="hover:text-gray-900 transition">Admin</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {% block content %}{% endblock %}
+    </main>
   </body>
 </html>

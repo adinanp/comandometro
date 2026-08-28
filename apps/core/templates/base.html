@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-br" class="h-full bg-slate-950 text-slate-100">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comandometro | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="h-full flex flex-col font-sans antialiased">
+    <!-- Navbar Minimalista Estilo Cal.com -->
+    <header
+      class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <span
+            class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent"
+          >
+            🎴 Comandometro
+          </span>
+          <span
+            class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+          >
+            v0.1
+          </span>
+        </div>
+        <nav class="flex gap-4 text-sm font-medium text-slate-400">
+          <a
+            href="{% url 'core:dashboard' %}"
+            class="text-slate-100 hover:text-white transition"
+            >Dashboard</a
+          >
+          <a href="/admin/" class="hover:text-slate-200 transition"
+            >Admin Panel</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

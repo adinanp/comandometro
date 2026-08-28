@@ -1,13 +1,30 @@
+from django import forms
 from django.contrib import admin
+from django.http import JsonResponse
+from django.urls import path
+
 from .models import (
-    Player,
-    PlayerProfile,
+    Achievement,
     Card,
     Deck,
     Game,
     GameParticipant,
-    Achievement,
+    Player,
+    PlayerProfile,
 )
+
+
+class DeckAdminForm(forms.ModelForm):
+    class Meta:
+        model = Deck
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        player_id = self.initial.get("player")
+        if player_id and not self.instance.pk:
+            self.fields["player"].widget = forms.HiddenInput()
+            self.fields["player"].required = False
 
 
 class PlayerProfileInline(admin.StackedInline):
@@ -20,8 +37,14 @@ class PlayerProfileInline(admin.StackedInline):
 class GameParticipantInline(admin.TabularInline):
     model = GameParticipant
     extra = 4
-    autocomplete_fields = ["player", "deck", "mvp_card"]
+    autocomplete_fields = ["player", "mvp_card"]
     fields = ("player", "deck", "placement", "kill_count", "mvp_card")
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == "mvp_card":
+            formfield.widget.can_add_related = False
+        return formfield
 
 
 class AchievementInline(admin.TabularInline):
@@ -62,17 +85,48 @@ class CardAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     ordering = ("name",)
 
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(Deck)
 class DeckAdmin(admin.ModelAdmin):
+    form = DeckAdminForm
     list_display = ("display_commanders", "player", "color_identity", "is_active")
     list_filter = ("is_active", "color_identity", "player")
     search_fields = ("commanders__name", "player__name", "player__nickname")
-    autocomplete_fields = ["player", "commanders"]
+    autocomplete_fields = ["commanders"]
 
-    @admin.display(description="Comandante(s)")
-    def display_commanders(self, obj):
-        return obj.display_commanders() or "Sem comandante"
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        player_id = request.GET.get("player")
+        if player_id:
+            initial["player"] = player_id
+        return initial
+
+    def get_fields(self, request, obj=None):
+        fields = ["commanders", "is_active"]
+        player_id = request.GET.get("player")
+        if not player_id and not obj:
+            fields.insert(0, "player")
+        elif obj:
+            fields.insert(0, "player")
+        else:
+            fields.append("player")
+        return fields
+
+    def save_model(self, request, obj, form, change):
+        if not change and not getattr(obj, "player_id", None):
+            player_id = request.GET.get("player")
+            if player_id:
+                obj.player_id = player_id
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Game)
@@ -102,6 +156,25 @@ class GameAdmin(admin.ModelAdmin):
         winner = obj.participants.filter(placement=1).first()
         return str(winner.player) if winner else "-"
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "get-player-decks/<int:player_id>/",
+                self.admin_site.admin_view(self.get_player_decks),
+                name="get_player_decks",
+            ),
+        ]
+        return custom_urls + urls
+
+    def get_player_decks(self, request, player_id):
+        decks = Deck.objects.filter(player_id=player_id, is_active=True)
+        data = [{"id": d.id, "name": str(d)} for d in decks]
+        return JsonResponse({"decks": data})
+
+    class Media:
+        js = ("core/js/admin_game_participant.js",)
+
 
 @admin.register(GameParticipant)
 class GameParticipantAdmin(admin.ModelAdmin):
@@ -114,7 +187,7 @@ class GameParticipantAdmin(admin.ModelAdmin):
         "game__id",
         "mvp_card__name",
     )
-    autocomplete_fields = ["game", "player", "deck", "mvp_card"]
+    autocomplete_fields = ["game", "player", "mvp_card"]
 
 
 @admin.register(Achievement)
