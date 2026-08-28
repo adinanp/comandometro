@@ -36,6 +36,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
+ADMIN_URL = env("ADMIN_URL", default="pod-cmd-7f2a9d/")
+
 
 # Application definition
 
