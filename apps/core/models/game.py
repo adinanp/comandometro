@@ -27,6 +27,9 @@ class Game(models.Model):
     notes = models.TextField(
         blank=True, help_text="Observações ou momentos marcantes da partida"
     )
+    turn_count = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Número de turnos até o fim da partida"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

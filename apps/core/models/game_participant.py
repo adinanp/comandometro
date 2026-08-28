@@ -35,6 +35,29 @@ class GameParticipant(models.Model):
         related_name='mvp_performances',
         help_text="Carta MVP jogada por este participante na partida (opcional)"
     )
+    peak_life_total = models.IntegerField(
+        null=True, blank=True, help_text="Vida mais alta atingida na partida"
+    )
+    board_wipes_count = models.PositiveIntegerField(default=0)
+    counterspell_count = models.PositiveIntegerField(default=0)
+    complaint_count = models.PositiveIntegerField(
+        default=0, help_text="Quantas vezes o participante reclamou na partida"
+    )
+    is_self_elimination = models.BooleanField(
+        default=False,
+        help_text="O participante foi eliminado por uma ação própria (não por outro jogador)"
+    )
+    biggest_creature = models.ForeignKey(
+        Card,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='biggest_creature_performances',
+        help_text="Maior criatura que bateu na mesa nesta partida"
+    )
+    biggest_creature_power = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Poder da criatura alcançado nesta partida"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
