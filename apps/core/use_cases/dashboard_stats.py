@@ -26,6 +26,7 @@ class DashboardStatsUseCase(BaseUseCase):
             )
             ranked_players.append(
                 {
+                    "id": player.id,
                     "name": player.name,
                     "wins": player.wins,
                     "total_games": player.total_games,
@@ -58,13 +59,17 @@ class DashboardStatsUseCase(BaseUseCase):
         # Carta MVP
         top_mvp_query = (
             GameParticipant.objects.filter(mvp_card__isnull=False)
-            .values("mvp_card__name")
+            .values("mvp_card", "mvp_card__name")
             .annotate(count=Count("id"))
             .order_by("-count")
             .first()
         )
 
-        top_mvp = {"name": top_mvp_query["mvp_card__name"]} if top_mvp_query else None
+        top_mvp = (
+            {"id": top_mvp_query["mvp_card"], "name": top_mvp_query["mvp_card__name"]}
+            if top_mvp_query
+            else None
+        )
 
         # Achievements
         achievements = Achievement.objects.select_related("player").order_by(
