@@ -1,0 +1,12 @@
+from apps.core.models import Game
+from apps.shared.use_cases import BaseUseCase
+
+
+class GameDetailUseCase(BaseUseCase):
+    def perform_request(self, game: Game) -> dict:
+        participants = (
+            game.participants.select_related("player", "deck", "mvp_card")
+            .prefetch_related("deck__commanders")
+            .order_by("placement")
+        )
+        return {"participants": list(participants)}
