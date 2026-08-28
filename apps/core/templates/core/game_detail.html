@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Partida de {{ game.date|date:"d/m/Y"|default:"data desconhecida" }}</h1>
+    <p class="text-sm text-gray-500">
+      Wincon: <span class="capitalize">{{ game.win_condition|default:"-" }}</span>
+      {% if game.turn_count %} • {{ game.turn_count }} turnos{% endif %}
+    </p>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-gray-50/30 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+            <th class="p-4">Jogador</th>
+            <th class="p-4">Comandante(s)</th>
+            <th class="p-4">Colocação</th>
+            <th class="p-4">Kills</th>
+            <th class="p-4">Board Wipes</th>
+            <th class="p-4">Counterspells</th>
+            <th class="p-4">Reclamações</th>
+            <th class="p-4">Vida de Pico</th>
+            <th class="p-4">MVP</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for row in rows %}
+          <tr class="hover:bg-gray-50/50 transition">
+            <td class="p-4 font-semibold text-gray-900">
+              <a href="{% url 'core:player-profile' row.participant.player.id %}" class="hover:underline">{{ row.participant.player.name }}</a>
+              {% if row.participant.is_self_elimination %}<span class="ml-1 text-xs text-red-500">(suicídio)</span>{% endif %}
+            </td>
+            <td class="p-4">
+              <div class="flex items-center gap-2">
+                {% for card, image_url in row.commander_images %}
+                {% if image_url %}<img src="{{ image_url }}" alt="{{ card.name }}" class="w-8 h-auto rounded" />{% endif %}
+                <span class="text-gray-700">{{ card.name }}</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td class="p-4">{{ row.participant.placement }}º</td>
+            <td class="p-4">{{ row.participant.kill_count }}</td>
+            <td class="p-4">{{ row.participant.board_wipes_count }}</td>
+            <td class="p-4">{{ row.participant.counterspell_count }}</td>
+            <td class="p-4">{{ row.participant.complaint_count }}</td>
+            <td class="p-4">{{ row.participant.peak_life_total|default:"-" }}</td>
+            <td class="p-4">
+              {% if row.mvp_image_url %}<img src="{{ row.mvp_image_url }}" alt="{{ row.participant.mvp_card.name }}" class="w-8 h-auto rounded inline-block mr-1" />{% endif %}
+              {{ row.participant.mvp_card.name|default:"-" }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Partidas</h1>
+    <p class="text-sm text-gray-500">Histórico completo, mais recente primeiro.</p>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-gray-50/30 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+            <th class="p-4">Data</th>
+            <th class="p-4">Wincon</th>
+            <th class="p-4">Jogadores</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for game in games %}
+          <tr class="hover:bg-gray-50/50 transition">
+            <td class="p-4">
+              <a href="{% url 'core:game-detail' game.id %}" class="font-semibold text-gray-900 hover:underline">
+                {{ game.date|date:"d/m/Y"|default:"Sem data" }}
+              </a>
+            </td>
+            <td class="p-4 capitalize">{{ game.win_condition|default:"-" }}</td>
+            <td class="p-4 text-gray-600">
+              {% for participant in game.participants.all %}{{ participant.player.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="p-6 text-center text-xs text-gray-400">Nenhuma partida registrada.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if is_paginated %}
+  <div class="flex justify-center gap-4 text-sm">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="text-gray-600 hover:text-gray-900">« Anterior</a>
+    {% endif %}
+    <span class="text-gray-400">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="text-gray-600 hover:text-gray-900">Próxima »</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
