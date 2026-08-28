@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Jogadores</h1>
+    <p class="text-sm text-gray-500">Todos os jogadores do pod.</p>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="divide-y divide-gray-100">
+      {% for player in players %}
+      <a href="{% url 'core:player-profile' player.id %}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
+        <span class="font-semibold text-gray-900">{{ player.name }}</span>
+        {% if player.nickname %}<span class="text-gray-400">{{ player.nickname }}</span>{% endif %}
+      </a>
+      {% empty %}
+      <div class="p-4 text-center text-xs text-gray-400">Nenhum jogador cadastrado ainda.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
