@@ -1,6 +1,7 @@
 import random
 from datetime import datetime, timedelta
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from apps.core.models import (
     Achievement,
@@ -84,7 +85,14 @@ EPIC_ACHIEVEMENTS = [
 
 
 class Command(BaseCommand):
-    help = "Gera partidas randômicas e popula os feitos épicos da planilha."
+    """
+    DEV-ONLY TOOL. Apaga todos os Game, GameParticipant e Achievement e
+    regenera partidas aleatórias + a lista fixa de EPIC_ACHIEVEMENTS.
+    Destrutivo — nunca deve rodar contra dados reais/compartilhados.
+    Recusa execução se settings.DEBUG for False.
+    """
+
+    help = "[DEV-ONLY] Gera partidas randômicas e popula os feitos épicos da planilha (destrutivo)."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -95,6 +103,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError(
+                "seed_games é uma dev-tool e recusa rodar com DEBUG=False. "
+                "Este comando apaga Game/GameParticipant/Achievement existentes."
+            )
+
         total_games = options["total"]
 
         self.stdout.write("Limpando partidas, participantes e achievements antigos...")

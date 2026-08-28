@@ -1,28 +1,43 @@
 import json
+import logging
 import urllib.request
 from django.core.management.base import BaseCommand
 from apps.core.models import Card
 
 MTGJSON_ATOMIC_URL = "https://mtgjson.com/api/v5/AtomicCards.json"
 
+logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
+    """
+    Import de dados de produção: baixa o AtomicCards.json do MTGJSON e
+    cria/atualiza registros de Card via bulk_create/bulk_update. Seguro
+    para rodar em qualquer ambiente (dev, staging, produção).
+    """
+
     help = "Importa/atualiza a base de cartas do Magic a partir do MTGJSON (AtomicCards.json)"
 
     def handle(self, *args, **options):
         self.stdout.write("Baixando AtomicCards.json do MTGJSON...")
+        logger.info("Iniciando download do AtomicCards.json (%s)", MTGJSON_ATOMIC_URL)
 
         req = urllib.request.Request(
             MTGJSON_ATOMIC_URL, headers={"User-Agent": "Mozilla/5.0"}
         )
 
-        with urllib.request.urlopen(req) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(req) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except Exception:
+            logger.exception("Falha ao baixar/parsear o AtomicCards.json")
+            raise
 
         cards_data = payload.get("data", {})
         self.stdout.write(
             f"Total de nomes únicos de cartas encontrados: {len(cards_data)}"
         )
+        logger.info("Total de nomes únicos de cartas encontrados: %d", len(cards_data))
 
         cards_to_create = []
         cards_to_update = []
@@ -91,6 +106,7 @@ class Command(BaseCommand):
         if cards_to_create:
             self.stdout.write(f"Criando {len(cards_to_create)} novas cartas...")
             Card.objects.bulk_create(cards_to_create, batch_size=2000)
+            logger.info("Criadas %d novas cartas", len(cards_to_create))
 
         if cards_to_update:
             self.stdout.write(
@@ -106,5 +122,7 @@ class Command(BaseCommand):
                 ],
                 batch_size=2000,
             )
+            logger.info("Atualizadas %d cartas existentes", len(cards_to_update))
 
         self.stdout.write(self.style.SUCCESS("Base de cartas atualizada com sucesso!"))
+        logger.info("Import do MTGJSON concluído com sucesso")
