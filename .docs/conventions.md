@@ -43,36 +43,31 @@ Ao criar um novo management command, pergunte: ele é seguro em produção?
 Se não for, ele precisa da mesma dupla de sinalização (docstring/help +
 guard de `DEBUG`).
 
-## Camada de Use Cases (planejada, ainda não implementada)
+## Camada de Use Cases
 
-A `DashboardView` hoje concentra toda a orquestração de regra de negócio
-do dashboard direto em `get_context_data` (ver
-[architecture.md](./architecture.md)). O plano é extrair isso pra uma
-camada de use cases — **sem introduzir DDD, hexagonal ou uma abstração
-pesada**, só uma camada fina de funções, seguindo a mesma convenção de
-"pacote de arquivos" já usada em `models/` e `views/`:
+Views não orquestram regra de negócio direto — isso vive numa camada de
+use cases, **sem introduzir DDD, hexagonal ou uma abstração pesada**, só
+uma camada fina de funções, seguindo a mesma convenção de "pacote de
+arquivos" já usada em `models/` e `views/`:
 
-- `apps/core/use_cases/` como pacote, um módulo por caso de uso — ex:
-  `apps/core/use_cases/dashboard_stats.py` com uma função
-  `get_dashboard_stats() -> dict` concentrando o que hoje está em
-  `DashboardView.get_context_data` (ranking de jogadores, win rate,
-  porcentagem de wincon, MVP).
-- `apps/core/use_cases/__init__.py` reexportando as funções públicas, do
+- `apps/core/use_cases/` é um pacote, um módulo por caso de uso — ex:
+  [`apps/core/use_cases/dashboard_stats.py`](../apps/core/use_cases/dashboard_stats.py)
+  com a função `get_dashboard_stats() -> dict`, que concentra o que antes
+  estava em `DashboardView.get_context_data` (ranking de jogadores, win
+  rate, porcentagem de wincon, MVP).
+- `apps/core/use_cases/__init__.py` reexporta as funções públicas, do
   mesmo jeito que `models/__init__.py` e `views/__init__.py` já fazem.
-- Regra de ouro: depois que um use case existir pra uma tela, a view só
-  chama a função e monta o `context` — nenhuma query/aggregate direto na
-  view.
+- Regra de ouro: a view só chama o use case e monta o `context` —
+  nenhuma query/aggregate direto na view.
 
-**Isso ainda não existe.** `DashboardView` continua com a lógica inline
-até essa extração ser feita — este documento descreve a forma que ela deve
-tomar quando acontecer, pra ninguém inventar uma estrutura diferente na
-hora.
+Ao adicionar uma tela nova com lógica de agregação não trivial, siga esse
+mesmo formato em vez de colocar a query direto em `get_context_data`.
 
 ## Anti-objetivo explícito
 
 Este projeto **não** usa DDD, Arquitetura Hexagonal ou uma camada de
 serviços pesada. É um projeto pequeno — a meta é Django idiomático: models
-gordos, views finas (via use cases quando a camada existir), funções e
-classes simples em `management/commands/`. Se uma solução parece precisar
+gordos, views finas (via use cases), funções e classes simples em
+`management/commands/`. Se uma solução parece precisar
 de mais de duas camadas de indireção pra um pod de 4 a 8 jogadores, é sinal
 de over-engineering, não de arquitetura madura.

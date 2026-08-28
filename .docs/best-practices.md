@@ -53,10 +53,3 @@ precisar mexer em código.
 - Rodar `manage.py check --deploy` antes de qualquer deploy real é uma boa
   prática barata — ele lista automaticamente settings de segurança que o
   Django recomenda e que ainda não estão configurados.
-
-## Gap conhecido, ainda não corrigido
-
-`apps/core/tests.py` continua sendo o stub padrão gerado pelo
-`startapp` do Django — não existe nenhum teste automatizado no projeto
-hoje. Isso é dívida técnica real e deveria ser o próximo item a atacar,
-mas está fora do escopo desta mudança.

@@ -28,18 +28,33 @@ Em contraste, `Player`, `Card`, `Game` e `GameParticipant` são
 intencionalmente modelos de dados simples, sem lógica de domínio — não é
 esquecimento, é porque eles não têm nenhuma regra a proteger.
 
-## Views são Class-Based
+## Views são Class-Based e finas
 
 Hoje existe uma única view no projeto:
 [`DashboardView(TemplateView)`](../apps/core/views/dashboard.py),
-sobrescrevendo `get_context_data`.
+sobrescrevendo `get_context_data`. A view não faz nenhuma query nem
+agregação diretamente — ela só chama
+[`get_dashboard_stats()`](../apps/core/use_cases/dashboard_stats.py) e
+joga o resultado no `context`:
 
-> **Ponto de atenção:** toda a lógica de agregação do dashboard (ranking de
-> jogadores, win rate %, porcentagem de wincon, MVP) está hoje dentro de
-> `get_context_data`. Isso é o alvo do refactor de "camada de use cases"
-> descrito em [conventions.md](./conventions.md) — ainda não implementado.
-> Quando for extraído, a view deve ficar só chamando o use case e montando
-> o contexto.
+```python
+def get_context_data(self, **kwargs):
+    context = super().get_context_data(**kwargs)
+    context.update(get_dashboard_stats())
+    return context
+```
+
+## Use Cases orquestram a regra de negócio
+
+Toda a agregação do dashboard (ranking de jogadores, win rate %,
+porcentagem de wincon, MVP) vive em
+[`apps/core/use_cases/dashboard_stats.py`](../apps/core/use_cases/dashboard_stats.py),
+na função `get_dashboard_stats() -> dict`. É a implementação real da
+convenção descrita em [conventions.md](./conventions.md): um pacote
+`use_cases/` com um módulo por caso de uso, reexportado em
+`use_cases/__init__.py`, do mesmo jeito que `models/` e `views/` já
+funcionam. Ao adicionar uma tela nova com lógica não trivial, o padrão é
+esse: escrever o use case primeiro, a view só chama e monta o contexto.
 
 ## Admin: padrões reutilizáveis
 
