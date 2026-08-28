@@ -9,6 +9,8 @@ class Card(models.Model):
     )
     is_commander_eligible = models.BooleanField(default=False)
     is_partner_eligible = models.BooleanField(default=False)
+    scryfall_id = models.CharField(max_length=36, blank=True)
+    image_url = models.URLField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
