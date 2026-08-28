@@ -3,6 +3,10 @@
 {% block content %}
 <div class="space-y-6">
 
+  <button type="button" onclick="history.back()" class="text-sm text-gray-500 hover:text-gray-900 transition">
+    ← Voltar
+  </button>
+
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Partida de {{ game.date|date:"d/m/Y"|default:"data desconhecida" }}</h1>
     <p class="text-sm text-gray-500">
