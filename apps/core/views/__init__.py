@@ -2,7 +2,8 @@ from .dashboard import DashboardView
 from .player_profile import PlayerProfileView
 from .player_list import PlayerListView
 from .player_create import PlayerCreateView
-from .my_profile import MyProfileRedirectView
+from .my_profile import MyProfileView
+from .my_decks import MyDecksView, DeckDeleteView
 from .game_list import GameListView
 from .game_detail import GameDetailView
 from .game_create import GameCreateView
@@ -15,7 +16,9 @@ __all__ = [
     "PlayerProfileView",
     "PlayerListView",
     "PlayerCreateView",
-    "MyProfileRedirectView",
+    "MyProfileView",
+    "MyDecksView",
+    "DeckDeleteView",
     "GameListView",
     "GameDetailView",
     "GameCreateView",

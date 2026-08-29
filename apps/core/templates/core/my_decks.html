@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <button type="button" onclick="history.back()" class="text-sm text-gray-500 hover:text-gray-900 transition">
+    ← Voltar
+  </button>
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Meus Decks</h1>
+      <p class="text-sm text-gray-500">Decks de {{ player.name }}.</p>
+    </div>
+    <a
+      href="{% url 'core:deck-create' pod_slug=pod.slug %}?player={{ player.id }}"
+      class="text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
+      >Novo Deck</a
+    >
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="divide-y divide-gray-100">
+      {% for deck in decks %}
+      <div class="p-4 flex items-center justify-between text-sm">
+        <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=deck.id %}" class="font-medium text-gray-700 hover:underline">
+          {{ deck.display_commanders|default:"Sem comandante" }}
+          {% if not deck.is_active %}<span class="text-xs text-gray-400">(inativo)</span>{% endif %}
+        </a>
+        <form
+          method="post"
+          action="{% url 'core:deck-delete' pod_slug=pod.slug pk=deck.id %}"
+          onsubmit="return confirm('Excluir este deck? Partidas já registradas com ele continuam existindo, só perdem a referência ao deck.');"
+        >
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-600 hover:underline">Excluir</button>
+        </form>
+      </div>
+      {% empty %}
+      <div class="p-4 text-center text-xs text-gray-400">Você ainda não tem nenhum deck cadastrado.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

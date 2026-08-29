@@ -101,7 +101,7 @@
     <!-- Navbar Cal.com Style -->
     <header class="border-b border-gray-200 bg-white sticky top-0 z-50">
       <div
-        class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+        class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-2 flex flex-wrap items-center justify-between gap-y-2"
       >
         <div class="flex items-center gap-3">
           <a href="{% url 'pods:pod-list' %}" class="flex items-center gap-3">
@@ -153,9 +153,6 @@
           <a href="{% url 'core:player-list' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
             >Jogadores</a
           >
-          <a href="{% url 'core:my-profile' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
-            >Meu Perfil</a
-          >
           {% if membership.is_owner %}
           <a href="{% url 'pod:pod-settings' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
             >Configurações</a
@@ -165,11 +162,23 @@
         {% endif %}
         <div class="flex items-center gap-4 text-sm font-medium text-gray-600">
           {% if user.is_authenticated %}
-          <span class="text-gray-500">{{ user.get_full_name|default:user.email }}</span>
-          <form method="post" action="{% url 'account_logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="hover:text-gray-900 transition">Sair</button>
-          </form>
+          <div class="relative group">
+            <button type="button" class="flex items-center gap-1 text-gray-500 hover:text-gray-900 transition">
+              {{ user.get_full_name|default:user.email }}
+              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+            </button>
+            <div class="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-50">
+              {% if pod %}
+              <a href="{% url 'core:my-decks' pod_slug=pod.slug %}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Meus Decks</a>
+              <a href="{% url 'core:my-profile' pod_slug=pod.slug %}" class="block px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Meu Perfil</a>
+              <div class="border-t border-gray-100 my-1"></div>
+              {% endif %}
+              <form method="post" action="{% url 'account_logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="block w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">Sair</button>
+              </form>
+            </div>
+          </div>
           {% else %}
           <a href="{% url 'account_login' %}" class="hover:text-gray-900 transition">Entrar</a>
           {% endif %}
