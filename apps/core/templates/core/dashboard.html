@@ -392,6 +392,22 @@
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
       </div>
+      <div class="p-4 flex items-center justify-between">
+        <span class="text-gray-500">🧂 Deck mais "salgado" (min. 3 vitórias)</span>
+        {% if records.saltiest_deck %}
+        <a href="{% url 'core:deck-detail' records.saltiest_deck.deck.id %}" class="font-semibold text-gray-900 hover:underline">
+          {{ records.saltiest_deck.deck.display_commanders }} ({{ records.saltiest_deck.salt_percentage }}%)
+        </a>
+        {% else %}<span class="text-gray-400">-</span>{% endif %}
+      </div>
+      <div class="p-4 flex items-center justify-between">
+        <span class="text-gray-500">Deck mais divertido (min. 3 notas)</span>
+        {% if records.most_fun_deck %}
+        <a href="{% url 'core:deck-detail' records.most_fun_deck.deck.id %}" class="font-semibold text-gray-900 hover:underline">
+          {{ records.most_fun_deck.deck.display_commanders }} ({{ records.most_fun_deck.avg_rating }}/5)
+        </a>
+        {% else %}<span class="text-gray-400">-</span>{% endif %}
+      </div>
         </div>
       </details>
 
