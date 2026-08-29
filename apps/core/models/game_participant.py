@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from .game import Game
 from .player import Player
@@ -57,6 +58,19 @@ class GameParticipant(models.Model):
     )
     biggest_creature_power = models.PositiveIntegerField(
         null=True, blank=True, help_text="Poder da criatura alcançado nesta partida"
+    )
+    starting_seat = models.PositiveSmallIntegerField(
+        null=True, blank=True, help_text="Posição inicial na mesa (1 = primeiro a jogar)"
+    )
+    felt_salty = models.BooleanField(
+        default=False,
+        help_text="Marcado por quem NÃO venceu, se achou a vitória do adversário irritante"
+    )
+    fun_rating = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Nota de diversão da partida (1 a 5) dada por este participante"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
