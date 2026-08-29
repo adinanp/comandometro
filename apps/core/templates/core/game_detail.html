@@ -27,7 +27,6 @@
             <th class="p-4">Board Wipes</th>
             <th class="p-4">Counterspells</th>
             <th class="p-4">Reclamações</th>
-            <th class="p-4">Vida de Pico</th>
             <th class="p-4">MVP</th>
           </tr>
         </thead>
@@ -39,10 +38,12 @@
               {% if row.participant.is_self_elimination %}<span class="ml-1 text-xs text-red-500">(suicídio)</span>{% endif %}
             </td>
             <td class="p-4">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1 text-gray-700">
                 {% for card, image_url in row.commander_images %}
-                {% if image_url %}<img src="{{ image_url }}" alt="{{ card.name }}" class="w-8 h-auto rounded" />{% endif %}
-                <span class="text-gray-700">{{ card.name }}</span>
+                <span
+                  class="{% if image_url %}hover:underline decoration-dotted cursor-zoom-in{% endif %}"
+                  {% if image_url %}data-card-image="{{ image_url }}"{% endif %}
+                >{{ card.name }}</span>{% if not forloop.last %} /{% endif %}
                 {% endfor %}
               </div>
             </td>
@@ -51,10 +52,11 @@
             <td class="p-4">{{ row.participant.board_wipes_count }}</td>
             <td class="p-4">{{ row.participant.counterspell_count }}</td>
             <td class="p-4">{{ row.participant.complaint_count }}</td>
-            <td class="p-4">{{ row.participant.peak_life_total|default:"-" }}</td>
             <td class="p-4">
-              {% if row.mvp_image_url %}<img src="{{ row.mvp_image_url }}" alt="{{ row.participant.mvp_card.name }}" class="w-8 h-auto rounded inline-block mr-1" />{% endif %}
-              {{ row.participant.mvp_card.name|default:"-" }}
+              <span
+                class="{% if row.mvp_image_url %}hover:underline decoration-dotted cursor-zoom-in{% endif %}"
+                {% if row.mvp_image_url %}data-card-image="{{ row.mvp_image_url }}"{% endif %}
+              >{{ row.participant.mvp_card.name|default:"-" }}</span>
             </td>
           </tr>
           {% endfor %}
