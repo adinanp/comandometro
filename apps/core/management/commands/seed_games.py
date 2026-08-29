@@ -205,6 +205,9 @@ class Command(BaseCommand):
                     is_self_elimination=random.random() < 0.05,
                     biggest_creature=biggest_creature,
                     biggest_creature_power=biggest_creature_power,
+                    starting_seat=idx + 1,
+                    felt_salty=(placement != 1 and random.random() < 0.3),
+                    fun_rating=random.choice([None, 2, 3, 4, 4, 5]),
                 )
             games_created += 1
 

@@ -51,6 +51,9 @@ class GameParticipantInline(admin.TabularInline):
         "is_self_elimination",
         "biggest_creature",
         "biggest_creature_power",
+        "starting_seat",
+        "felt_salty",
+        "fun_rating",
     )
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
