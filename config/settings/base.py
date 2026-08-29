@@ -42,6 +42,10 @@ if RENDER_EXTERNAL_HOSTNAME:
 
 ADMIN_URL = env("ADMIN_URL", default="pod-admin/")
 
+# Desativado por padrão: o CRUD do próprio app substitui o Admin no dia a
+# dia. Religar é só trocar essa env var, sem precisar de novo código.
+ADMIN_ENABLED = env.bool("ADMIN_ENABLED", default=False)
+
 
 # Application definition
 
@@ -52,6 +56,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "apps.cards",
+    "apps.pods",
     "apps.core",
 ]
 
@@ -62,9 +73,40 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+SITE_ID = 1
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/pods/"
+
+# Login só por e-mail/senha ou Google — sem username, sem verificação de
+# e-mail por enquanto (não há backend de e-mail configurado no projeto).
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_RATE_LIMITS = {
+    "login_failed": "5/5m",
+}
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": env("GOOGLE_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+        "SCOPE": ["profile", "email"],
+    },
+}
 
 ROOT_URLCONF = "config.urls"
 
@@ -78,6 +120,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.pods.context_processors.user_pods",
             ],
         },
     },

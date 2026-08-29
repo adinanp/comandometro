@@ -3,15 +3,22 @@
 {% block content %}
 <div class="space-y-6">
 
-  <div>
-    <h1 class="text-2xl font-bold text-gray-900">Jogadores</h1>
-    <p class="text-sm text-gray-500">Todos os jogadores do pod.</p>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Jogadores</h1>
+      <p class="text-sm text-gray-500">Todos os jogadores do pod.</p>
+    </div>
+    <a
+      href="{% url 'core:player-create' pod_slug=pod.slug %}"
+      class="text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
+      >Novo Jogador</a
+    >
   </div>
 
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
     <div class="divide-y divide-gray-100">
       {% for player in players %}
-      <a href="{% url 'core:player-profile' player.id %}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
+      <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=player.id %}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
         <span class="font-semibold text-gray-900">{{ player.name }}</span>
         {% if player.nickname %}<span class="text-gray-400">{{ player.nickname }}</span>{% endif %}
       </a>

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Configurações do Pod</h1>
+    <p class="text-sm text-gray-500">Só o dono vê esta página.</p>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+    <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Nome</h2>
+    <form method="post" class="flex items-center gap-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="rename" />
+      {{ form.name }}
+      <button type="submit" class="text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition whitespace-nowrap">
+        Salvar
+      </button>
+    </form>
+    {% if form.name.errors %}
+    <p class="text-xs text-red-600">{{ form.name.errors|join:", " }}</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+    <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Link de Convite</h2>
+    <div class="flex items-center gap-3">
+      <input type="text" readonly value="{{ invite_url }}" class="form-input font-mono text-xs" />
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="regenerate_invite" />
+      <button type="submit" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
+        Gerar novo link (invalida o anterior)
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Membros</h2>
+    </div>
+    <div class="divide-y divide-gray-100">
+      {% for m in members %}
+      <div class="p-4 flex items-center justify-between text-sm">
+        <div>
+          <span class="font-medium text-gray-900">{{ m.user.get_full_name|default:m.user.email }}</span>
+          <span class="text-xs text-gray-400 ml-2">{{ m.get_role_display }}</span>
+        </div>
+        {% if not m.is_owner %}
+        <form method="post" onsubmit="return confirm('Remover {{ m.user.get_full_name|default:m.user.email }} do pod?');">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="remove_member" />
+          <input type="hidden" name="membership_id" value="{{ m.id }}" />
+          <button type="submit" class="text-xs text-red-600 hover:underline">Remover</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-white border border-red-200 rounded-xl shadow-sm p-6 space-y-3">
+    <h2 class="text-xs font-bold text-red-700 uppercase tracking-wider">Zona de risco</h2>
+    <p class="text-xs text-gray-500">Apaga o pod e todos os dados dele (jogadores, decks, partidas). Não pode ser desfeito.</p>
+    <form method="post" onsubmit="return confirm('Tem certeza que quer apagar o pod {{ pod.name }}? Essa ação não pode ser desfeita.');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_pod" />
+      <button type="submit" class="text-sm font-semibold px-4 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 transition">
+        Apagar Pod
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

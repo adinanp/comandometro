@@ -15,6 +15,9 @@ class WinConditionChoices(models.TextChoices):
 
 
 class Game(models.Model):
+    pod = models.ForeignKey(
+        "pods.Pod", on_delete=models.CASCADE, related_name="games"
+    )
     date = models.DateField(
         null=True, blank=True, help_text="Data em que a partida foi realizada"
     )

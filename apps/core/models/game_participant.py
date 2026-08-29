@@ -1,9 +1,10 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from apps.cards.models import Card
 from .game import Game
 from .player import Player
 from .deck import Deck
-from .card import Card
 
 
 class GameParticipant(models.Model):
@@ -78,6 +79,13 @@ class GameParticipant(models.Model):
     class Meta:
         unique_together = ('game', 'player')
         ordering = ['game', 'placement']
+
+    def clean(self):
+        super().clean()
+        if self.game_id and self.player_id and self.game.pod_id != self.player.pod_id:
+            raise ValidationError(
+                "O jogador e a partida precisam pertencer ao mesmo pod."
+            )
 
     def __str__(self):
         player_name = self.player.nickname or self.player.name

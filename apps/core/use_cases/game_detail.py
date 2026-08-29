@@ -1,5 +1,5 @@
 from apps.core.models import Game
-from apps.shared.use_cases import BaseUseCase
+from apps.core.use_cases.base import BaseUseCase
 
 
 class GameDetailUseCase(BaseUseCase):

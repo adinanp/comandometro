@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Seus Pods</h1>
+      <p class="text-sm text-gray-500">Cada pod tem seu próprio dashboard, jogadores e partidas.</p>
+    </div>
+    <a
+      href="{% url 'pods:pod-create' %}"
+      class="text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
+      >Criar Pod</a
+    >
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% for p in pods %}
+    <a
+      href="{% url 'core:dashboard' pod_slug=p.slug %}"
+      class="block p-5 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
+    >
+      <span class="font-semibold text-gray-900">{{ p.name }}</span>
+      <p class="text-xs text-gray-400 mt-1">Criado em {{ p.created_at|date:"d/m/Y" }}</p>
+    </a>
+    {% empty %}
+    <p class="text-sm text-gray-400 col-span-2 text-center py-8">
+      Você ainda não faz parte de nenhum pod. Crie um novo ou peça um link de convite pra alguém que já tenha um.
+    </p>
+    {% endfor %}
+  </div>
+
+  <form method="get" action="{% url 'pods:pod-join-by-link' %}" class="flex items-center gap-2">
+    <input
+      type="text"
+      name="link"
+      placeholder="Colar link de convite"
+      class="form-input"
+    />
+    <button type="submit" class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition whitespace-nowrap">
+      Entrar
+    </button>
+  </form>
+
+</div>
+{% endblock %}

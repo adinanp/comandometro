@@ -25,7 +25,7 @@
         🏆 MAIOR VENCEDOR
       </span>
       <p class="text-2xl font-bold text-gray-900 mt-2">
-        {% if top_player %}<a href="{% url 'core:player-profile' top_player.id %}" class="hover:underline">{{ top_player.name }}</a>{% else %}-{% endif %}
+        {% if top_player %}<a href="{% url 'core:player-profile' pod_slug=pod.slug pk=top_player.id %}" class="hover:underline">{{ top_player.name }}</a>{% else %}-{% endif %}
       </p>
       <p class="text-xs text-amber-700 font-medium mt-1">
         {{ top_player.wins|default:0 }} vitórias ({{ top_player.win_rate|default:0 }}% winrate)
@@ -134,7 +134,7 @@
             </span>
             <div>
               <p class="text-sm font-bold text-gray-900">
-                <a href="{% url 'core:player-profile' player.id %}" class="hover:underline">{{ player.name }}</a>
+                <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=player.id %}" class="hover:underline">{{ player.name }}</a>
               </p>
               <p class="text-xs text-gray-400">{{ player.total_games }} partidas ({{ player.win_rate }}% WR)</p>
             </div>
@@ -181,7 +181,7 @@
             </td>
             <td class="p-4 font-medium text-gray-900">
               {% if achievement.player %}
-              <a href="{% url 'core:player-profile' achievement.player.id %}" class="hover:underline">{{ achievement.player.name }}</a>
+              <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=achievement.player.id %}" class="hover:underline">{{ achievement.player.name }}</a>
               {% else %}-{% endif %}
             </td>
           </tr>
@@ -217,7 +217,7 @@
         <div class="divide-y divide-gray-100 border-t border-gray-100">
           {% for row in points_ranking %}
           <div class="p-4 flex items-center justify-between text-sm">
-            <a href="{% url 'core:player-profile' row.player.id %}" class="font-medium text-gray-700 hover:underline">{{ row.player.name }}</a>
+            <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=row.player.id %}" class="font-medium text-gray-700 hover:underline">{{ row.player.name }}</a>
             <span class="font-bold text-gray-900">{{ row.points }} pts</span>
           </div>
           {% empty %}
@@ -284,7 +284,7 @@
         <div class="divide-y divide-gray-100 border-t border-gray-100">
           {% for row in top_commanders_qualified %}
           <div class="p-4 flex items-center justify-between text-sm">
-            <a href="{% url 'core:deck-detail' row.deck.id %}" class="font-medium text-gray-700 hover:underline">{{ row.deck.display_commanders }}</a>
+            <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=row.deck.id %}" class="font-medium text-gray-700 hover:underline">{{ row.deck.display_commanders }}</a>
             <span class="text-gray-500">{{ row.games }} jogos</span>
             <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
           </div>
@@ -334,7 +334,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Maior board wipe (numa partida)</span>
         {% if records.board_wipes %}
-        <a href="{% url 'core:game-detail' records.board_wipes.game.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.board_wipes.game.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.board_wipes.player.name }} ({{ records.board_wipes.board_wipes_count }})
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
@@ -342,7 +342,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Mais counterspells (numa partida)</span>
         {% if records.counterspells %}
-        <a href="{% url 'core:game-detail' records.counterspells.game.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.counterspells.game.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.counterspells.player.name }} ({{ records.counterspells.counterspell_count }})
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
@@ -350,7 +350,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Maior chorão (numa partida)</span>
         {% if records.complaints %}
-        <a href="{% url 'core:game-detail' records.complaints.game.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.complaints.game.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.complaints.player.name }} ({{ records.complaints.complaint_count }})
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
@@ -358,7 +358,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Mais vida numa partida</span>
         {% if records.most_life %}
-        <a href="{% url 'core:game-detail' records.most_life.game.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.most_life.game.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.most_life.player.name }} ({{ records.most_life.peak_life_total }})
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
@@ -366,7 +366,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Maior criatura (poder alcançado)</span>
         {% if records.biggest_creature %}
-        <a href="{% url 'core:game-detail' records.biggest_creature.game.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.biggest_creature.game.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.biggest_creature.biggest_creature.name }} ({{ records.biggest_creature.biggest_creature_power }})
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
@@ -378,7 +378,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Jogo mais rápido (sem combo)</span>
         {% if records.fastest_game_no_combo %}
-        <a href="{% url 'core:game-detail' records.fastest_game_no_combo.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.fastest_game_no_combo.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.fastest_game_no_combo.turn_count }} turnos
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
@@ -386,7 +386,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Jogo mais rápido (com combo)</span>
         {% if records.fastest_game_combo %}
-        <a href="{% url 'core:game-detail' records.fastest_game_combo.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.fastest_game_combo.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.fastest_game_combo.turn_count }} turnos
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
@@ -394,7 +394,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">🧂 Deck mais "salgado" (min. 3 vitórias)</span>
         {% if records.saltiest_deck %}
-        <a href="{% url 'core:deck-detail' records.saltiest_deck.deck.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=records.saltiest_deck.deck.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.saltiest_deck.deck.display_commanders }} ({{ records.saltiest_deck.salt_percentage }}%)
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
@@ -402,7 +402,7 @@
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Deck mais divertido (min. 3 notas)</span>
         {% if records.most_fun_deck %}
-        <a href="{% url 'core:deck-detail' records.most_fun_deck.deck.id %}" class="font-semibold text-gray-900 hover:underline">
+        <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=records.most_fun_deck.deck.id %}" class="font-semibold text-gray-900 hover:underline">
           {{ records.most_fun_deck.deck.display_commanders }} ({{ records.most_fun_deck.avg_rating }}/5)
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}

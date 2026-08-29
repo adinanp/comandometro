@@ -1,12 +1,17 @@
 from django.views.generic import DetailView
+from apps.cards.use_cases import EnsureCardImageUseCase
 from apps.core.models import Deck
-from apps.core.use_cases import DeckDetailUseCase, EnsureCardImageUseCase
+from apps.core.use_cases import DeckDetailUseCase
+from apps.pods.mixins import PodMemberRequiredMixin
 
 
-class DeckDetailView(DetailView):
+class DeckDetailView(PodMemberRequiredMixin, DetailView):
     model = Deck
     template_name = "core/deck_detail.html"
     context_object_name = "deck"
+
+    def get_queryset(self):
+        return Deck.objects.filter(player__pod=self.pod)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

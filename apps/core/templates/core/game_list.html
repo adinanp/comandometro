@@ -3,9 +3,16 @@
 {% block content %}
 <div class="space-y-6">
 
-  <div>
-    <h1 class="text-2xl font-bold text-gray-900">Partidas</h1>
-    <p class="text-sm text-gray-500">Histórico completo, mais recente primeiro.</p>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Partidas</h1>
+      <p class="text-sm text-gray-500">Histórico completo, mais recente primeiro.</p>
+    </div>
+    <a
+      href="{% url 'core:game-create' pod_slug=pod.slug %}"
+      class="text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
+      >Nova Partida</a
+    >
   </div>
 
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -22,7 +29,7 @@
           {% for game in games %}
           <tr class="hover:bg-gray-50/50 transition">
             <td class="p-4">
-              <a href="{% url 'core:game-detail' game.id %}" class="font-semibold text-gray-900 hover:underline">
+              <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=game.id %}" class="font-semibold text-gray-900 hover:underline">
                 {{ game.date|date:"d/m/Y"|default:"Sem data" }}
               </a>
             </td>

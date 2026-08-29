@@ -3,14 +3,15 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
+from apps.cards.models import Card
 from apps.core.models import (
     Achievement,
-    Card,
     Deck,
     Game,
     GameParticipant,
     Player,
 )
+from apps.pods.models import Pod
 
 WIN_CONDITIONS = [
     "combat damage",
@@ -96,6 +97,12 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
+            "--pod",
+            type=str,
+            required=True,
+            help="Slug do Pod a ser populado (precisa já existir)",
+        )
+        parser.add_argument(
             "--total",
             type=int,
             default=50,
@@ -109,14 +116,22 @@ class Command(BaseCommand):
                 "Este comando apaga Game/GameParticipant/Achievement existentes."
             )
 
+        try:
+            pod = Pod.objects.get(slug=options["pod"])
+        except Pod.DoesNotExist as exc:
+            raise CommandError(
+                f"Pod com slug '{options['pod']}' não existe. Crie o pod pela "
+                "própria aplicação antes de rodar o seed."
+            ) from exc
+
         total_games = options["total"]
 
-        self.stdout.write("Limpando partidas, participantes e achievements antigos...")
-        Achievement.objects.all().delete()
-        GameParticipant.objects.all().delete()
-        Game.objects.all().delete()
+        self.stdout.write(f"Limpando partidas, participantes e achievements de {pod}...")
+        Achievement.objects.filter(player__pod=pod).delete()
+        GameParticipant.objects.filter(game__pod=pod).delete()
+        Game.objects.filter(pod=pod).delete()
 
-        players = list(Player.objects.all())
+        players = list(Player.objects.filter(pod=pod))
         eligible_commanders = list(Card.objects.filter(is_commander_eligible=True))
         # Duplas geradas aqui só usam Partner genérico — é a única mecânica
         # onde "pegar 2 ao acaso do pool" já garante uma combinação legal.
@@ -174,6 +189,7 @@ class Command(BaseCommand):
             game_date = timezone.now().date() - timedelta(days=random_days_ago)
 
             game = Game.objects.create(
+                pod=pod,
                 date=game_date,
                 win_condition=random.choice(WIN_CONDITIONS),
                 notes="Partida gerada via CLI.",

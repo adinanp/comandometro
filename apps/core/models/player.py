@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -9,14 +10,29 @@ class PronounChoices(models.TextChoices):
 
 
 class Player(models.Model):
+    pod = models.ForeignKey(
+        "pods.Pod", on_delete=models.CASCADE, related_name="players"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="players",
+        help_text="Conta vinculada, se o jogador tiver login (opcional — permite jogador convidado)",
+    )
     name = models.CharField(
-        max_length=100, unique=True, help_text="Nome completo ou oficial do jogador"
+        max_length=100, help_text="Nome completo ou oficial do jogador"
     )
     nickname = models.CharField(
         max_length=50, blank=True, help_text="Apelido usado nas partidas e tabelas"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("pod", "name")
+        ordering = ["name"]
 
     def __str__(self):
         return str(self.nickname) if self.nickname else str(self.name)

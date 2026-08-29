@@ -1,12 +1,17 @@
 from django.views.generic import DetailView
+from apps.cards.use_cases import EnsureCardImageUseCase
 from apps.core.models import Game
-from apps.core.use_cases import EnsureCardImageUseCase, GameDetailUseCase
+from apps.core.use_cases import GameDetailUseCase
+from apps.pods.mixins import PodMemberRequiredMixin
 
 
-class GameDetailView(DetailView):
+class GameDetailView(PodMemberRequiredMixin, DetailView):
     model = Game
     template_name = "core/game_detail.html"
     context_object_name = "game"
+
+    def get_queryset(self):
+        return Game.objects.filter(pod=self.pod)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

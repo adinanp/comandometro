@@ -1,7 +1,7 @@
 from django.db.models import Count
 
 from apps.core.models import Deck, Game, GameParticipant
-from apps.shared.use_cases import BaseUseCase
+from apps.core.use_cases.base import BaseUseCase
 
 
 class DeckDetailUseCase(BaseUseCase):

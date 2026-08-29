@@ -84,7 +84,7 @@
     <div class="divide-y divide-gray-100">
       {% for row in matchups %}
       <div class="p-4 flex items-center justify-between text-sm">
-        <a href="{% url 'core:deck-detail' row.deck.id %}" class="font-medium text-gray-700 hover:underline">{{ row.deck.display_commanders }}</a>
+        <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=row.deck.id %}" class="font-medium text-gray-700 hover:underline">{{ row.deck.display_commanders }}</a>
         <span class="text-gray-500">{{ row.games }} partidas juntos</span>
         <span class="font-bold text-gray-900">{{ row.opponent_win_rate }}% de vitória deles</span>
       </div>
@@ -101,7 +101,7 @@
     </div>
     <div class="divide-y divide-gray-100">
       {% for game in recent_games %}
-      <a href="{% url 'core:game-detail' game.id %}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
+      <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=game.id %}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
         <span class="text-gray-700">{{ game.date|date:"d/m/Y"|default:"Sem data" }}</span>
         <span class="text-gray-500 capitalize">{{ game.win_condition|default:"-" }}</span>
       </a>

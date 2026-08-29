@@ -2,27 +2,29 @@ from django.db.models import Count
 from django.db.models.functions import TruncMonth
 
 from apps.core.models import Deck, Game, GameParticipant, Player
-from apps.shared.use_cases import BaseUseCase
+from apps.core.use_cases.base import BaseUseCase
 
 POINTS_BY_PLACEMENT = {1: 4, 2: 2, 3: 1}
 
 
 class PodInsightsUseCase(BaseUseCase):
-    def perform_request(self, since=None) -> dict:
+    def perform_request(self, pod, since=None) -> dict:
         return {
-            "color_identity_stats": self._color_identity_stats(since),
-            "color_count_stats": self._color_count_stats(since),
-            "wincon_trend": self._wincon_trend(since),
-            "points_ranking": self._points_ranking(since),
-            "top_commanders_qualified": self._top_commanders_qualified(since),
-            "seat_stats": self._seat_stats(since),
-            "records": self._records(),
+            "color_identity_stats": self._color_identity_stats(pod, since),
+            "color_count_stats": self._color_count_stats(pod, since),
+            "wincon_trend": self._wincon_trend(pod, since),
+            "points_ranking": self._points_ranking(pod, since),
+            "top_commanders_qualified": self._top_commanders_qualified(pod, since),
+            "seat_stats": self._seat_stats(pod, since),
+            "records": self._records(pod),
         }
 
-    def _color_identity_stats(self, since):
+    def _color_identity_stats(self, pod, since):
         stats = []
         for color in "WUBRG":
-            decks_with_color = Deck.objects.filter(color_identity__contains=color)
+            decks_with_color = Deck.objects.filter(
+                color_identity__contains=color, player__pod=pod
+            )
             performances = GameParticipant.objects.filter(deck__in=decks_with_color)
             if since:
                 performances = performances.filter(game__date__gte=since)
@@ -34,9 +36,9 @@ class PodInsightsUseCase(BaseUseCase):
             )
         return stats
 
-    def _color_count_stats(self, since):
+    def _color_count_stats(self, pod, since):
         buckets = {n: {"games": 0, "wins": 0} for n in range(6)}
-        for deck in Deck.objects.all():
+        for deck in Deck.objects.filter(player__pod=pod):
             performances = deck.match_performances.all()
             if since:
                 performances = performances.filter(game__date__gte=since)
@@ -63,8 +65,8 @@ class PodInsightsUseCase(BaseUseCase):
             )
         return stats
 
-    def _wincon_trend(self, since):
-        games = Game.objects.exclude(date__isnull=True)
+    def _wincon_trend(self, pod, since):
+        games = Game.objects.filter(pod=pod).exclude(date__isnull=True)
         if since:
             games = games.filter(date__gte=since)
         trend = (
@@ -75,9 +77,9 @@ class PodInsightsUseCase(BaseUseCase):
         )
         return list(trend)
 
-    def _points_ranking(self, since):
+    def _points_ranking(self, pod, since):
         ranking = []
-        for player in Player.objects.all():
+        for player in Player.objects.filter(pod=pod):
             performances = player.match_performances.all()
             if since:
                 performances = performances.filter(game__date__gte=since)
@@ -88,9 +90,9 @@ class PodInsightsUseCase(BaseUseCase):
         ranking.sort(key=lambda row: row["points"], reverse=True)
         return ranking
 
-    def _top_commanders_qualified(self, since):
+    def _top_commanders_qualified(self, pod, since):
         qualified = []
-        for deck in Deck.objects.all():
+        for deck in Deck.objects.filter(player__pod=pod):
             performances = deck.match_performances.all()
             if since:
                 performances = performances.filter(game__date__gte=since)
@@ -106,8 +108,10 @@ class PodInsightsUseCase(BaseUseCase):
         qualified.sort(key=lambda row: row["win_rate"], reverse=True)
         return qualified
 
-    def _seat_stats(self, since):
-        performances = GameParticipant.objects.exclude(starting_seat__isnull=True)
+    def _seat_stats(self, pod, since):
+        performances = GameParticipant.objects.filter(game__pod=pod).exclude(
+            starting_seat__isnull=True
+        )
         if since:
             performances = performances.filter(game__date__gte=since)
 
@@ -132,35 +136,38 @@ class PodInsightsUseCase(BaseUseCase):
             )
         return stats
 
-    def _records(self):
+    def _records(self, pod):
+        pod_participants = GameParticipant.objects.filter(game__pod=pod)
+
         def top_by(field):
             obj = (
-                GameParticipant.objects.select_related("player", "game")
+                pod_participants.select_related("player", "game")
                 .order_by(f"-{field}")
                 .first()
             )
             return obj if obj and getattr(obj, field) > 0 else None
 
         most_life = (
-            GameParticipant.objects.select_related("player", "game")
+            pod_participants.select_related("player", "game")
             .exclude(peak_life_total__isnull=True)
             .order_by("-peak_life_total")
             .first()
         )
         biggest_creature = (
-            GameParticipant.objects.select_related("player", "game", "biggest_creature")
+            pod_participants.select_related("player", "game", "biggest_creature")
             .exclude(biggest_creature__isnull=True)
             .order_by("-biggest_creature_power")
             .first()
         )
         fastest_game_no_combo = (
-            Game.objects.exclude(win_condition="combo")
+            Game.objects.filter(pod=pod)
+            .exclude(win_condition="combo")
             .exclude(turn_count__isnull=True)
             .order_by("turn_count")
             .first()
         )
         fastest_game_combo = (
-            Game.objects.filter(win_condition="combo")
+            Game.objects.filter(pod=pod, win_condition="combo")
             .exclude(turn_count__isnull=True)
             .order_by("turn_count")
             .first()
@@ -172,18 +179,18 @@ class PodInsightsUseCase(BaseUseCase):
             "complaints": top_by("complaint_count"),
             "most_life": most_life,
             "biggest_creature": biggest_creature,
-            "self_eliminations_count": GameParticipant.objects.filter(
+            "self_eliminations_count": pod_participants.filter(
                 is_self_elimination=True
             ).count(),
             "fastest_game_no_combo": fastest_game_no_combo,
             "fastest_game_combo": fastest_game_combo,
-            "saltiest_deck": self._saltiest_deck(),
-            "most_fun_deck": self._most_fun_deck(),
+            "saltiest_deck": self._saltiest_deck(pod),
+            "most_fun_deck": self._most_fun_deck(pod),
         }
 
-    def _saltiest_deck(self):
+    def _saltiest_deck(self, pod):
         best = None
-        for deck in Deck.objects.all():
+        for deck in Deck.objects.filter(player__pod=pod):
             wins = GameParticipant.objects.filter(deck=deck, placement=1)
             if wins.count() < 3:
                 continue
@@ -202,9 +209,9 @@ class PodInsightsUseCase(BaseUseCase):
                 best = {"deck": deck, "salt_percentage": salt_percentage}
         return best
 
-    def _most_fun_deck(self):
+    def _most_fun_deck(self, pod):
         best = None
-        for deck in Deck.objects.all():
+        for deck in Deck.objects.filter(player__pod=pod):
             ratings = list(
                 GameParticipant.objects.filter(deck=deck)
                 .exclude(fun_rating__isnull=True)

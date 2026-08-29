@@ -32,13 +32,18 @@
   </div>
 
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+    <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
       <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">COMANDANTES PILOTADOS</h2>
+      <a
+        href="{% url 'core:deck-create' pod_slug=pod.slug %}?player={{ player.id }}"
+        class="text-xs font-semibold text-gray-600 hover:text-gray-900 transition"
+        >+ Novo Deck</a
+      >
     </div>
     <div class="divide-y divide-gray-100">
       {% for row in commander_stats %}
       <div class="p-4 flex items-center justify-between text-sm">
-        <a href="{% url 'core:deck-detail' row.deck.id %}" class="flex items-center gap-1 font-medium text-gray-700 hover:underline">
+        <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=row.deck.id %}" class="flex items-center gap-1 font-medium text-gray-700 hover:underline">
           {% for card, image_url in row.commander_images %}
           <span
             class="{% if image_url %}cursor-zoom-in{% endif %}"

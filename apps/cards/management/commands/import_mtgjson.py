@@ -2,7 +2,7 @@ import json
 import logging
 import urllib.request
 from django.core.management.base import BaseCommand
-from apps.core.models import Card
+from apps.cards.models import Card
 
 MTGJSON_ATOMIC_URL = "https://mtgjson.com/api/v5/AtomicCards.json"
 

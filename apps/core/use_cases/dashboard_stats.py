@@ -1,23 +1,23 @@
 from django.db.models import Count
 from apps.core.models import Achievement, Deck, Game, GameParticipant, Player
-from apps.shared.use_cases import BaseUseCase
+from apps.core.use_cases.base import BaseUseCase
 
 
 class DashboardStatsUseCase(BaseUseCase):
-    def perform_request(self, since=None) -> dict:
-        games = Game.objects.all()
-        achievements_qs = Achievement.objects.select_related("player")
-        participants = GameParticipant.objects.all()
+    def perform_request(self, pod, since=None) -> dict:
+        games = Game.objects.filter(pod=pod)
+        achievements_qs = Achievement.objects.filter(player__pod=pod).select_related("player")
+        participants = GameParticipant.objects.filter(game__pod=pod)
         if since:
             games = games.filter(date__gte=since)
             achievements_qs = achievements_qs.filter(date__gte=since)
             participants = participants.filter(game__date__gte=since)
 
         total_games = games.count()
-        total_decks = Deck.objects.filter(is_active=True).count()
+        total_decks = Deck.objects.filter(is_active=True, player__pod=pod).count()
 
         ranked_players = []
-        for player in Player.objects.all():
+        for player in Player.objects.filter(pod=pod):
             performances = player.match_performances.all()
             if since:
                 performances = performances.filter(game__date__gte=since)

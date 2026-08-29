@@ -18,8 +18,21 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 urlpatterns = [
-    path(settings.ADMIN_URL, admin.site.urls),
-    path("", include(("apps.core.urls", "core"), namespace="core")),
+    path("", RedirectView.as_view(pattern_name="pods:pod-list"), name="home"),
+    path("accounts/", include("allauth.urls")),
+    path("pods/", include(("apps.pods.urls", "pods"), namespace="pods")),
+    path(
+        "p/<slug:pod_slug>/",
+        include(("apps.pods.pod_scoped_urls", "pod"), namespace="pod"),
+    ),
+    path(
+        "p/<slug:pod_slug>/",
+        include(("apps.core.urls", "core"), namespace="core"),
+    ),
 ]
+
+if settings.ADMIN_ENABLED:
+    urlpatterns.append(path(settings.ADMIN_URL, admin.site.urls))

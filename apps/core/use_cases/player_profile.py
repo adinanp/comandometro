@@ -2,8 +2,8 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 
 from apps.core.models import Deck, Player
+from apps.core.use_cases.base import BaseUseCase
 from apps.core.use_cases.pod_insights import POINTS_BY_PLACEMENT
-from apps.shared.use_cases import BaseUseCase
 
 
 class PlayerProfileUseCase(BaseUseCase):

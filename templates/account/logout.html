@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-sm mx-auto text-center space-y-6 py-12">
+  <h1 class="text-2xl font-bold text-gray-900">Sair</h1>
+  <p class="text-sm text-gray-500">Tem certeza que quer sair da sua conta?</p>
+  <form method="post" action="{% url 'account_logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="text-sm font-semibold px-6 py-2.5 rounded-lg bg-black text-white hover:bg-gray-800 transition">
+      Sair
+    </button>
+  </form>
+</div>
+{% endblock %}

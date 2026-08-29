@@ -10,7 +10,7 @@ python manage.py migrate
 # Importa a base de cartas do MTGJSON só se o banco ainda estiver vazio —
 # evita rebaixar e reprocessar ~35 mil cartas em todo deploy subsequente.
 python manage.py shell -c "
-from apps.core.models import Card
+from apps.cards.models import Card
 import sys
 sys.exit(0 if Card.objects.exists() else 1)
 " || python manage.py import_mtgjson

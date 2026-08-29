@@ -34,7 +34,7 @@
           {% for row in rows %}
           <tr class="hover:bg-gray-50/50 transition">
             <td class="p-4 font-semibold text-gray-900">
-              <a href="{% url 'core:player-profile' row.participant.player.id %}" class="hover:underline">{{ row.participant.player.name }}</a>
+              <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=row.participant.player.id %}" class="hover:underline">{{ row.participant.player.name }}</a>
               {% if row.participant.is_self_elimination %}<span class="ml-1 text-xs text-red-500">(suicídio)</span>{% endif %}
             </td>
             <td class="p-4">

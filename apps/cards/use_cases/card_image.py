@@ -3,7 +3,7 @@ import logging
 import urllib.error
 import urllib.request
 
-from apps.shared.use_cases import BaseUseCase
+from apps.core.use_cases.base import BaseUseCase
 
 logger = logging.getLogger(__name__)
 
