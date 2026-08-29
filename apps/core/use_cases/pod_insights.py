@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.db.models.functions import TruncMonth
 
 from apps.core.models import Deck, Game, GameParticipant, Player
@@ -8,21 +8,24 @@ POINTS_BY_PLACEMENT = {1: 4, 2: 2, 3: 1}
 
 
 class PodInsightsUseCase(BaseUseCase):
-    def perform_request(self) -> dict:
+    def perform_request(self, since=None) -> dict:
         return {
-            "color_identity_stats": self._color_identity_stats(),
-            "color_count_stats": self._color_count_stats(),
-            "wincon_trend": self._wincon_trend(),
-            "points_ranking": self._points_ranking(),
-            "top_commanders_qualified": self._top_commanders_qualified(),
+            "color_identity_stats": self._color_identity_stats(since),
+            "color_count_stats": self._color_count_stats(since),
+            "wincon_trend": self._wincon_trend(since),
+            "points_ranking": self._points_ranking(since),
+            "top_commanders_qualified": self._top_commanders_qualified(since),
+            "seat_stats": self._seat_stats(since),
             "records": self._records(),
         }
 
-    def _color_identity_stats(self):
+    def _color_identity_stats(self, since):
         stats = []
         for color in "WUBRG":
             decks_with_color = Deck.objects.filter(color_identity__contains=color)
             performances = GameParticipant.objects.filter(deck__in=decks_with_color)
+            if since:
+                performances = performances.filter(game__date__gte=since)
             games = performances.count()
             wins = performances.filter(placement=1).count()
             win_rate = round((wins / games * 100), 1) if games else 0
@@ -31,20 +34,19 @@ class PodInsightsUseCase(BaseUseCase):
             )
         return stats
 
-    def _color_count_stats(self):
-        decks = Deck.objects.annotate(
-            games=Count("match_performances"),
-            wins=Count(
-                "match_performances", filter=Q(match_performances__placement=1)
-            ),
-        )
+    def _color_count_stats(self, since):
         buckets = {n: {"games": 0, "wins": 0} for n in range(6)}
-        for deck in decks:
+        for deck in Deck.objects.all():
+            performances = deck.match_performances.all()
+            if since:
+                performances = performances.filter(game__date__gte=since)
+            games = performances.count()
+            wins = performances.filter(placement=1).count()
             num_colors = (
                 0 if deck.color_identity in ("", "C") else len(deck.color_identity)
             )
-            buckets[num_colors]["games"] += deck.games
-            buckets[num_colors]["wins"] += deck.wins
+            buckets[num_colors]["games"] += games
+            buckets[num_colors]["wins"] += wins
 
         stats = []
         for num_colors, totals in sorted(buckets.items()):
@@ -61,20 +63,24 @@ class PodInsightsUseCase(BaseUseCase):
             )
         return stats
 
-    def _wincon_trend(self):
+    def _wincon_trend(self, since):
+        games = Game.objects.exclude(date__isnull=True)
+        if since:
+            games = games.filter(date__gte=since)
         trend = (
-            Game.objects.exclude(date__isnull=True)
-            .annotate(month=TruncMonth("date"))
+            games.annotate(month=TruncMonth("date"))
             .values("month", "win_condition")
             .annotate(count=Count("id"))
             .order_by("month", "win_condition")
         )
         return list(trend)
 
-    def _points_ranking(self):
+    def _points_ranking(self, since):
         ranking = []
         for player in Player.objects.all():
             performances = player.match_performances.all()
+            if since:
+                performances = performances.filter(game__date__gte=since)
             points = sum(
                 POINTS_BY_PLACEMENT.get(p.placement, 0) for p in performances
             )
@@ -82,28 +88,49 @@ class PodInsightsUseCase(BaseUseCase):
         ranking.sort(key=lambda row: row["points"], reverse=True)
         return ranking
 
-    def _top_commanders_qualified(self):
-        decks = Deck.objects.annotate(
-            games=Count("match_performances"),
-            wins=Count(
-                "match_performances", filter=Q(match_performances__placement=1)
-            ),
-        ).filter(games__gte=5)
-
+    def _top_commanders_qualified(self, since):
         qualified = []
-        for deck in decks:
-            win_rate = round((deck.wins / deck.games * 100), 1) if deck.games else 0
+        for deck in Deck.objects.all():
+            performances = deck.match_performances.all()
+            if since:
+                performances = performances.filter(game__date__gte=since)
+            games = performances.count()
+            if games < 5:
+                continue
+            wins = performances.filter(placement=1).count()
+            win_rate = round((wins / games * 100), 1)
             if win_rate >= 20:
                 qualified.append(
-                    {
-                        "deck": deck,
-                        "games": deck.games,
-                        "wins": deck.wins,
-                        "win_rate": win_rate,
-                    }
+                    {"deck": deck, "games": games, "wins": wins, "win_rate": win_rate}
                 )
         qualified.sort(key=lambda row: row["win_rate"], reverse=True)
         return qualified
+
+    def _seat_stats(self, since):
+        performances = GameParticipant.objects.exclude(starting_seat__isnull=True)
+        if since:
+            performances = performances.filter(game__date__gte=since)
+
+        buckets = {}
+        for performance in performances:
+            seat = performance.starting_seat
+            buckets.setdefault(seat, {"games": 0, "wins": 0})
+            buckets[seat]["games"] += 1
+            if performance.placement == 1:
+                buckets[seat]["wins"] += 1
+
+        stats = []
+        for seat, totals in sorted(buckets.items()):
+            win_rate = round((totals["wins"] / totals["games"] * 100), 1)
+            stats.append(
+                {
+                    "seat": seat,
+                    "games": totals["games"],
+                    "wins": totals["wins"],
+                    "win_rate": win_rate,
+                }
+            )
+        return stats
 
     def _records(self):
         def top_by(field):
@@ -150,4 +177,42 @@ class PodInsightsUseCase(BaseUseCase):
             ).count(),
             "fastest_game_no_combo": fastest_game_no_combo,
             "fastest_game_combo": fastest_game_combo,
+            "saltiest_deck": self._saltiest_deck(),
+            "most_fun_deck": self._most_fun_deck(),
         }
+
+    def _saltiest_deck(self):
+        best = None
+        for deck in Deck.objects.all():
+            wins = GameParticipant.objects.filter(deck=deck, placement=1)
+            if wins.count() < 3:
+                continue
+            salty_reactions = 0
+            eligible_reactions = 0
+            for win in wins:
+                opponents = GameParticipant.objects.filter(game=win.game).exclude(
+                    placement=1
+                )
+                eligible_reactions += opponents.count()
+                salty_reactions += opponents.filter(felt_salty=True).count()
+            if eligible_reactions == 0:
+                continue
+            salt_percentage = round((salty_reactions / eligible_reactions * 100), 1)
+            if best is None or salt_percentage > best["salt_percentage"]:
+                best = {"deck": deck, "salt_percentage": salt_percentage}
+        return best
+
+    def _most_fun_deck(self):
+        best = None
+        for deck in Deck.objects.all():
+            ratings = list(
+                GameParticipant.objects.filter(deck=deck)
+                .exclude(fun_rating__isnull=True)
+                .values_list("fun_rating", flat=True)
+            )
+            if len(ratings) < 3:
+                continue
+            avg_rating = round(sum(ratings) / len(ratings), 1)
+            if best is None or avg_rating > best["avg_rating"]:
+                best = {"deck": deck, "avg_rating": avg_rating}
+        return best
