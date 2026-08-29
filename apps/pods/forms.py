@@ -6,6 +6,7 @@ class PodForm(forms.ModelForm):
     class Meta:
         model = Pod
         fields = ["name"]
+        labels = {"name": "Nome"}
         widgets = {
             "name": forms.TextInput(
                 attrs={"class": "form-input", "placeholder": "Nome do playgroup"}

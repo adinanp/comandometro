@@ -97,6 +97,11 @@ ACCOUNT_RATE_LIMITS = {
     "login_failed": "5/5m",
 }
 
+# Sem isso, clicar em "Continuar com Google" mostra uma tela intermediária
+# de confirmação do próprio allauth antes de ir pro Google — com
+# LOGIN_ON_GET=True o link já redireciona direto.
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {

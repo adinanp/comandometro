@@ -1,6 +1,6 @@
 from django.shortcuts import redirect, render
 from django.views import View
-from apps.core.forms import GameForm, GameParticipantFormSet, build_participants
+from apps.core.forms import DeckForm, GameForm, GameParticipantFormSet, build_participants
 from apps.pods.mixins import PodMemberRequiredMixin
 
 
@@ -32,5 +32,6 @@ class GameCreateView(PodMemberRequiredMixin, View):
                 "membership": self.membership,
                 "game_form": game_form,
                 "formset": formset,
+                "deck_modal_form": DeckForm(pod=self.pod, prefix="new_deck"),
             },
         )

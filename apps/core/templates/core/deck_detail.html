@@ -47,7 +47,7 @@
       <div class="divide-y divide-gray-100">
         {% for row in wincon_breakdown %}
         <div class="p-4 flex items-center justify-between text-sm">
-          <span class="font-medium text-gray-700 capitalize">{{ row.name }}</span>
+          <span class="font-medium text-gray-700">{{ row.name }}</span>
           <span class="text-gray-500">{{ row.count }} vitórias</span>
           <span class="font-bold text-gray-900">{{ row.percentage }}%</span>
         </div>
@@ -103,7 +103,7 @@
       {% for game in recent_games %}
       <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=game.id %}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
         <span class="text-gray-700">{{ game.date|date:"d/m/Y"|default:"Sem data" }}</span>
-        <span class="text-gray-500 capitalize">{{ game.win_condition|default:"-" }}</span>
+        <span class="text-gray-500">{{ game.get_win_condition_display|default:"-" }}</span>
       </a>
       {% empty %}
       <div class="p-4 text-center text-xs text-gray-400">Nenhuma partida registrada ainda.</div>

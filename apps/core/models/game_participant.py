@@ -26,6 +26,8 @@ class GameParticipant(models.Model):
         related_name='match_performances'
     )
     placement = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
         help_text="Colocação final na partida (1 para Vencedor, etc.)"
     )
     kill_count = models.PositiveIntegerField(default=0)
@@ -89,4 +91,5 @@ class GameParticipant(models.Model):
 
     def __str__(self):
         player_name = self.player.nickname or self.player.name
-        return f"{self.game} - {player_name} ({self.placement}º lugar)"
+        placement_str = f"{self.placement}º lugar" if self.placement else "sem colocação"
+        return f"{self.game} - {player_name} ({placement_str})"

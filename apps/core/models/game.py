@@ -2,7 +2,7 @@ from django.db import models
 
 
 class WinConditionChoices(models.TextChoices):
-    COMBAT = "combat", "Combat"
+    COMBAT = "combat", "Combate"
     COMBO = "combo", "Combo"
     ENGINE_VALUE = "engine_value", "Engine/Value"
     INFECT = "infect", "Infect"
@@ -10,8 +10,8 @@ class WinConditionChoices(models.TextChoices):
     HARD_LOCK = "hard_lock", "Hard Lock"
     MILL = "mill", "Mill"
     SOFT_LOCK = "soft_lock", "Soft Lock"
-    BURN_LIFELOSS = "burn_lifeloss", "Burn/Lifeloss"
-    COMMANDER_DAMAGE = "commander_damage", "Commander Damage"
+    BURN_LIFELOSS = "burn_lifeloss", "Queima/Perda de Vida"
+    COMMANDER_DAMAGE = "commander_damage", "Dano de Comandante"
 
 
 class Game(models.Model):

@@ -9,7 +9,7 @@
 
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Nova Partida</h1>
-    <p class="text-sm text-gray-500">Registre o resultado e quem participou.</p>
+    <p class="text-sm text-gray-500">Registre o resultado e quem participou. Preencha só as linhas dos jogadores que jogaram.</p>
   </div>
 
   <form method="post" class="space-y-6">
@@ -22,13 +22,7 @@
       {% endif %}
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {% for field in game_form %}
-        <div>
-          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{{ field.label }}</label>
-          {{ field }}
-          {% if field.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ field.errors|join:", " }}</p>
-          {% endif %}
-        </div>
+        {% include "core/_labeled_field.html" with field=field %}
         {% endfor %}
       </div>
     </div>
@@ -36,7 +30,7 @@
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       <div class="p-4 border-b border-gray-100 bg-gray-50/50">
         <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Participantes</h2>
-        <p class="text-xs text-gray-400 mt-1">Pelo menos 2 jogadores. Deixe uma linha em branco (sem jogador) para ignorá-la.</p>
+        <p class="text-xs text-gray-400 mt-1">Só o jogador é obrigatório por linha — deixe o resto em branco se não quiser detalhar.</p>
       </div>
       {{ formset.management_form }}
       {% if formset.non_form_errors %}
@@ -44,7 +38,7 @@
       {% endif %}
       <div class="divide-y divide-gray-100">
         {% for participant_form in formset %}
-        <div class="p-4 space-y-3">
+        <div class="p-4 space-y-3" data-participant-row>
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Participante {{ forloop.counter }}</p>
           {% if participant_form.non_field_errors %}
           <p class="text-xs text-red-600">{{ participant_form.non_field_errors|join:", " }}</p>
@@ -52,23 +46,27 @@
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {% for field in participant_form %}
             {% if field.name != "is_self_elimination" and field.name != "felt_salty" %}
-            <div>
-              <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{{ field.label }}</label>
-              {{ field }}
-              {% if field.errors %}
-              <p class="text-[10px] text-red-600 mt-1">{{ field.errors|join:", " }}</p>
+              {% if field.name == "deck" %}
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    {{ field.label }}
+                    <span class="text-gray-400 font-normal normal-case lowercase">(opcional)</span>
+                  </label>
+                  <button type="button" class="js-open-deck-modal text-[11px] font-semibold text-gray-600 hover:text-gray-900">+ Criar deck</button>
+                </div>
+                {{ field }}
+                {% if field.errors %}<p class="text-xs text-red-600 mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+              </div>
+              {% else %}
+              {% include "core/_labeled_field.html" with field=field %}
               {% endif %}
-            </div>
             {% endif %}
             {% endfor %}
           </div>
           <div class="flex items-center gap-6 text-xs text-gray-600">
-            <label class="flex items-center gap-1.5">
-              {{ participant_form.is_self_elimination }} Suicídio
-            </label>
-            <label class="flex items-center gap-1.5">
-              {{ participant_form.felt_salty }} Ficou salty
-            </label>
+            {% include "core/_labeled_field.html" with field=participant_form.is_self_elimination %}
+            {% include "core/_labeled_field.html" with field=participant_form.felt_salty %}
           </div>
         </div>
         {% endfor %}
@@ -81,4 +79,106 @@
   </form>
 
 </div>
+
+<!-- Modal compartilhado de "criar deck" — uma instância só, reaproveitada
+     por qualquer linha de participante que clicar em "+ Criar deck". -->
+<div id="deck-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-bold text-gray-900">Criar novo deck</h2>
+      <button type="button" id="deck-modal-close" class="text-gray-400 hover:text-gray-700">✕</button>
+    </div>
+    <div id="deck-modal-errors" class="hidden text-xs text-red-600 space-y-1"></div>
+    <div id="deck-modal-form">
+      {% include "core/_deck_fields.html" with form=deck_modal_form %}
+    </div>
+    <button type="button" id="deck-modal-submit" class="w-full text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition">
+      Criar deck
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var modal = document.getElementById("deck-modal");
+    var closeBtn = document.getElementById("deck-modal-close");
+    var submitBtn = document.getElementById("deck-modal-submit");
+    var errorsBox = document.getElementById("deck-modal-errors");
+    var activeRow = null;
+
+    function openModal(row) {
+      activeRow = row;
+      errorsBox.classList.add("hidden");
+      errorsBox.innerHTML = "";
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      activeRow = null;
+    }
+
+    document.querySelectorAll(".js-open-deck-modal").forEach(function (button) {
+      button.addEventListener("click", function () {
+        openModal(button.closest("[data-participant-row]"));
+      });
+    });
+
+    closeBtn.addEventListener("click", closeModal);
+    modal.addEventListener("click", function (event) {
+      if (event.target === modal) closeModal();
+    });
+
+    submitBtn.addEventListener("click", function () {
+      var form = document.getElementById("deck-modal-form");
+      var inputs = form.querySelectorAll("input, select");
+      var body = new URLSearchParams();
+      inputs.forEach(function (input) {
+        if (input.type === "checkbox") {
+          if (input.checked) body.append(input.name, "on");
+        } else {
+          body.append(input.name, input.value);
+        }
+      });
+
+      fetch("{% url 'core:deck-create-ajax' pod_slug=pod.slug %}", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": window.getCsrfToken(),
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: body,
+      })
+        .then(function (resp) {
+          return resp.json().then(function (data) {
+            return { ok: resp.ok, data: data };
+          });
+        })
+        .then(function (result) {
+          if (!result.ok) {
+            errorsBox.innerHTML = result.data.errors
+              .map(function (msg) {
+                return "<p>" + msg + "</p>";
+              })
+              .join("");
+            errorsBox.classList.remove("hidden");
+            return;
+          }
+          if (activeRow) {
+            var select = activeRow.querySelector('select[name$="-deck"]');
+            var option = document.createElement("option");
+            option.value = result.data.id;
+            option.textContent = result.data.name;
+            option.selected = true;
+            select.appendChild(option);
+          }
+          closeModal();
+        });
+    });
+  })();
+</script>
 {% endblock %}

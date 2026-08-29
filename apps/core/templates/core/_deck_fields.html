@@ -1,0 +1,49 @@
+{% comment %}
+Campos de um DeckForm — usado tanto em core/deck_form.html (página cheia)
+quanto no modal de "criar deck" embutido em core/game_form.html. Espera
+uma variável `form` (instância de DeckForm) no contexto.
+{% endcomment %}
+<div data-deck-fields class="space-y-4">
+  {% if form.non_field_errors %}
+  <p class="text-xs text-red-600">{{ form.non_field_errors|join:", " }}</p>
+  {% endif %}
+
+  <div>
+    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+      {{ form.player.label }} <span class="text-red-500">*</span>
+    </label>
+    {{ form.player }}
+    {% if form.player.errors %}
+    <p class="text-xs text-red-600 mt-1">{{ form.player.errors|join:", " }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+      {{ form.commander_1.label }} <span class="text-red-500">*</span>
+    </label>
+    {{ form.commander_1 }}
+    {% if form.commander_1.errors %}
+    <p class="text-xs text-red-600 mt-1">{{ form.commander_1.errors|join:", " }}</p>
+    {% endif %}
+  </div>
+
+  <div data-commander-2-section class="hidden">
+    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+      {{ form.commander_2.label }}
+      <span class="text-gray-400 font-normal normal-case lowercase">(opcional)</span>
+    </label>
+    {{ form.commander_2 }}
+    <p class="text-xs text-gray-400 mt-1">
+      Só aparece pra preencher quando o comandante escolhido permite dupla
+      (Partner, Partner with, Choose a Background, Doctor's companion).
+    </p>
+    {% if form.commander_2.errors %}
+    <p class="text-xs text-red-600 mt-1">{{ form.commander_2.errors|join:", " }}</p>
+    {% endif %}
+  </div>
+
+  <label class="flex items-center gap-2 text-sm text-gray-700">
+    {{ form.is_active }} {{ form.is_active.label }}
+  </label>
+</div>

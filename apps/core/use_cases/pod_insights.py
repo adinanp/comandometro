@@ -1,7 +1,7 @@
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
 
-from apps.core.models import Deck, Game, GameParticipant, Player
+from apps.core.models import Deck, Game, GameParticipant, Player, WinConditionChoices
 from apps.core.use_cases.base import BaseUseCase
 
 POINTS_BY_PLACEMENT = {1: 4, 2: 2, 3: 1}
@@ -75,7 +75,10 @@ class PodInsightsUseCase(BaseUseCase):
             .annotate(count=Count("id"))
             .order_by("month", "win_condition")
         )
-        return list(trend)
+        rows = list(trend)
+        for row in rows:
+            row["win_condition"] = WinConditionChoices(row["win_condition"]).label
+        return rows
 
     def _points_ranking(self, pod, since):
         ranking = []

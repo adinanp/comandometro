@@ -1,5 +1,5 @@
 from django.db.models import Count
-from apps.core.models import Achievement, Deck, Game, GameParticipant, Player
+from apps.core.models import Achievement, Deck, Game, GameParticipant, Player, WinConditionChoices
 from apps.core.use_cases.base import BaseUseCase
 
 
@@ -49,7 +49,11 @@ class DashboardStatsUseCase(BaseUseCase):
         for wc in wincon_counts:
             pct = round((wc["count"] / total_games * 100), 1) if total_games > 0 else 0
             wincon_modes.append(
-                {"name": wc["win_condition"], "count": wc["count"], "percentage": pct}
+                {
+                    "name": WinConditionChoices(wc["win_condition"]).label,
+                    "count": wc["count"],
+                    "percentage": pct,
+                }
             )
 
         top_wincon = wincon_modes[0] if wincon_modes else None

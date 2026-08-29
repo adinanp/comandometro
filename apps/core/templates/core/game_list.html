@@ -33,7 +33,7 @@
                 {{ game.date|date:"d/m/Y"|default:"Sem data" }}
               </a>
             </td>
-            <td class="p-4 capitalize">{{ game.win_condition|default:"-" }}</td>
+            <td class="p-4">{{ game.get_win_condition_display|default:"-" }}</td>
             <td class="p-4 text-gray-600">
               {% for participant in game.participants.all %}{{ participant.player.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
             </td>

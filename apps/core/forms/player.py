@@ -6,6 +6,7 @@ class PlayerForm(forms.ModelForm):
     class Meta:
         model = Player
         fields = ["name", "nickname"]
+        labels = {"name": "Nome", "nickname": "Apelido"}
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-input"}),
             "nickname": forms.TextInput(attrs={"class": "form-input"}),

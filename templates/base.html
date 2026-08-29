@@ -56,6 +56,43 @@
       input[type="checkbox"] {
         width: auto;
       }
+      .card-picker {
+        position: relative;
+      }
+      .card-picker-results {
+        display: none;
+        position: absolute;
+        z-index: 40;
+        left: 0;
+        right: 0;
+        top: calc(100% + 4px);
+        max-height: 220px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+      .card-picker-results.is-open {
+        display: block;
+      }
+      .card-picker-result {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+      }
+      .card-picker-result:hover,
+      .card-picker-result.is-active {
+        background: #f3f4f6;
+      }
+      .card-picker-empty {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+        color: #9ca3af;
+      }
+      [data-commander-2-section].hidden {
+        display: none;
+      }
     </style>
   </head>
   <body
@@ -115,6 +152,9 @@
           >
           <a href="{% url 'core:player-list' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
             >Jogadores</a
+          >
+          <a href="{% url 'core:my-profile' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
+            >Meu Perfil</a
           >
           {% if membership.is_owner %}
           <a href="{% url 'pod:pod-settings' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
@@ -199,5 +239,160 @@
         });
       })();
     </script>
+
+    <!-- Seletor de carta por busca (comandantes, MVP) — usado em qualquer
+         tela que renderize o widget CardPickerWidget (apps/cards/widgets.py).
+         Vanilla JS, sem framework: busca em cards:card-search, mostra os
+         resultados num dropdown, e guarda o ID escolhido no input escondido. -->
+    <script>
+      window.getCsrfToken = function () {
+        var match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? match[1] : "";
+      };
+
+      (function () {
+        var PARTNER_FLAGS = [
+          "can_have_partner",
+          "can_choose_background",
+          "is_background",
+          "has_doctors_companion",
+          "is_the_doctor",
+        ];
+
+        function debounce(fn, wait) {
+          var timer;
+          return function () {
+            var args = arguments;
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+              fn.apply(null, args);
+            }, wait);
+          };
+        }
+
+        function initCardPicker(container) {
+          var input = container.querySelector(".card-picker-input");
+          var hidden = container.querySelector(".card-picker-value");
+          var results = container.querySelector(".card-picker-results");
+          var commanderOnly = container.getAttribute("data-commander-only") === "1";
+
+          function closeResults() {
+            results.classList.remove("is-open");
+            results.innerHTML = "";
+          }
+
+          function selectCard(card) {
+            input.value = card.name;
+            hidden.value = card.id;
+            hidden.dataset.selectedName = card.name;
+            closeResults();
+            container.dispatchEvent(
+              new CustomEvent("cardpicker:change", { detail: card, bubbles: true })
+            );
+          }
+
+          if (hidden.value) {
+            hidden.dataset.selectedName = input.value;
+          }
+
+          function search(query) {
+            var url =
+              "/cards/buscar/?q=" +
+              encodeURIComponent(query) +
+              (commanderOnly ? "&commander_only=1" : "");
+            fetch(url)
+              .then(function (resp) {
+                return resp.json();
+              })
+              .then(function (data) {
+                renderResults(data.results || []);
+              });
+          }
+
+          function renderResults(cards) {
+            results.innerHTML = "";
+            if (!cards.length) {
+              results.innerHTML =
+                '<div class="card-picker-empty">Nenhuma carta encontrada.</div>';
+              results.classList.add("is-open");
+              return;
+            }
+            cards.forEach(function (card) {
+              var row = document.createElement("div");
+              row.className = "card-picker-result";
+              row.textContent = card.name;
+              row.addEventListener("mousedown", function (event) {
+                event.preventDefault();
+                selectCard(card);
+              });
+              results.appendChild(row);
+            });
+            results.classList.add("is-open");
+          }
+
+          var debouncedSearch = debounce(function () {
+            var query = input.value.trim();
+            if (hidden.value && input.value !== hidden.dataset.selectedName) {
+              hidden.value = "";
+              container.dispatchEvent(
+                new CustomEvent("cardpicker:change", { detail: null, bubbles: true })
+              );
+            }
+            if (query.length < 2) {
+              closeResults();
+              return;
+            }
+            search(query);
+          }, 250);
+
+          input.addEventListener("input", debouncedSearch);
+          input.addEventListener("blur", function () {
+            setTimeout(closeResults, 150);
+          });
+        }
+
+        function initPartnerReveal(scope) {
+          var commander1 = scope.querySelector('[data-role="commander-1"]');
+          var section = scope.querySelector("[data-commander-2-section]");
+          var commander2Hidden = section
+            ? section.querySelector(".card-picker-value")
+            : null;
+          var commander2Input = section
+            ? section.querySelector(".card-picker-input")
+            : null;
+          if (!commander1 || !section) return;
+
+          commander1.addEventListener("cardpicker:change", function (event) {
+            var card = event.detail;
+            var canPair = card
+              ? PARTNER_FLAGS.some(function (flag) {
+                  return card[flag];
+                })
+              : false;
+            if (canPair) {
+              section.classList.remove("hidden");
+            } else {
+              section.classList.add("hidden");
+              if (commander2Hidden) commander2Hidden.value = "";
+              if (commander2Input) commander2Input.value = "";
+            }
+          });
+
+          if (!commander2Hidden || !commander2Hidden.value) {
+            section.classList.add("hidden");
+          }
+        }
+
+        document.querySelectorAll(".card-picker").forEach(initCardPicker);
+        document.querySelectorAll("[data-deck-fields]").forEach(initPartnerReveal);
+
+        window.initCardPickersIn = function (scope) {
+          scope.querySelectorAll(".card-picker").forEach(initCardPicker);
+          scope.querySelectorAll("[data-deck-fields]").forEach(initPartnerReveal);
+        };
+      })();
+    </script>
+
+    {% block extra_js %}{% endblock %}
   </body>
 </html>

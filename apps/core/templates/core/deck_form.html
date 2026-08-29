@@ -9,27 +9,13 @@
 
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Novo Deck</h1>
-    <p class="text-sm text-gray-500">Selecione até 2 comandantes (só é permitido em dupla se alguma habilidade real do jogo permitir).</p>
+    <p class="text-sm text-gray-500">Busque o comandante pelo nome. A dupla só aparece se a carta permitir.</p>
   </div>
 
-  <form method="post" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+  <form method="post" class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
     {% csrf_token %}
-    {% if form.non_field_errors %}
-    <p class="text-xs text-red-600">{{ form.non_field_errors|join:", " }}</p>
-    {% endif %}
-    {% for field in form %}
-    <div>
-      <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{{ field.label }}</label>
-      {{ field }}
-      {% if field.help_text %}
-      <p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>
-      {% endif %}
-      {% if field.errors %}
-      <p class="text-xs text-red-600 mt-1">{{ field.errors|join:", " }}</p>
-      {% endif %}
-    </div>
-    {% endfor %}
-    <button type="submit" class="w-full text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition">
+    {% include "core/_deck_fields.html" with form=form %}
+    <button type="submit" class="mt-4 w-full text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition">
       Cadastrar
     </button>
   </form>

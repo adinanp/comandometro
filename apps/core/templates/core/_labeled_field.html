@@ -1,0 +1,36 @@
+{% comment %}
+Campo de formulário com label + marcador de obrigatório/opcional + tooltip
+(a partir do help_text) num ícone "ⓘ" com title nativo do navegador — sem
+JS, sem componente novo. Espera uma variável `field` (BoundField).
+{% endcomment %}
+{% if field.field.widget.input_type == "checkbox" %}
+<div>
+  <label class="flex items-center gap-2 text-sm text-gray-700">
+    {{ field }} {{ field.label }}
+    {% if field.help_text %}
+    <span class="text-gray-400 cursor-help" title="{{ field.help_text }}">ⓘ</span>
+    {% endif %}
+  </label>
+  {% if field.errors %}
+  <p class="text-xs text-red-600 mt-1">{{ field.errors|join:", " }}</p>
+  {% endif %}
+</div>
+{% else %}
+<div>
+  <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+    {{ field.label }}
+    {% if field.field.required %}
+    <span class="text-red-500">*</span>
+    {% else %}
+    <span class="text-gray-400 font-normal normal-case lowercase">(opcional)</span>
+    {% endif %}
+    {% if field.help_text %}
+    <span class="ml-1 text-gray-400 cursor-help normal-case font-normal" title="{{ field.help_text }}">ⓘ</span>
+    {% endif %}
+  </label>
+  {{ field }}
+  {% if field.errors %}
+  <p class="text-xs text-red-600 mt-1">{{ field.errors|join:", " }}</p>
+  {% endif %}
+</div>
+{% endif %}

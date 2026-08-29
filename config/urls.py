@@ -23,6 +23,7 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path("", RedirectView.as_view(pattern_name="pods:pod-list"), name="home"),
     path("accounts/", include("allauth.urls")),
+    path("cards/", include(("apps.cards.urls", "cards"), namespace="cards")),
     path("pods/", include(("apps.pods.urls", "pods"), namespace="pods")),
     path(
         "p/<slug:pod_slug>/",

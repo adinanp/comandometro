@@ -37,7 +37,7 @@
       <span class="text-[11px] font-bold text-indigo-600 tracking-wider uppercase flex items-center gap-1">
         ⚡ MAIOR WINCON
       </span>
-      <p class="text-xl font-bold text-gray-900 mt-2 capitalize truncate">
+      <p class="text-xl font-bold text-gray-900 mt-2 truncate">
         {{ top_wincon.name|default:"-" }}
       </p>
       <p class="text-xs text-indigo-600 font-medium mt-1">
@@ -102,7 +102,7 @@
         </div>
         {% for mode in wincon_modes %}
         <div class="p-4 flex items-center justify-between text-sm">
-          <span class="font-medium text-gray-700 capitalize">{{ mode.name }}</span>
+          <span class="font-medium text-gray-700">{{ mode.name }}</span>
           <div class="flex items-center gap-8">
             <span class="text-gray-500">{{ mode.count }}</span>
             <span class="font-bold text-gray-900 w-12 text-right">{{ mode.percentage }}%</span>
@@ -313,7 +313,7 @@
               {% for row in wincon_trend %}
               <tr>
                 <td class="p-4">{{ row.month|date:"M/Y" }}</td>
-                <td class="p-4 capitalize">{{ row.win_condition }}</td>
+                <td class="p-4">{{ row.win_condition }}</td>
                 <td class="p-4 font-semibold">{{ row.count }}</td>
               </tr>
               {% empty %}

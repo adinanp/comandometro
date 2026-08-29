@@ -10,7 +10,7 @@
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Partida de {{ game.date|date:"d/m/Y"|default:"data desconhecida" }}</h1>
     <p class="text-sm text-gray-500">
-      Wincon: <span class="capitalize">{{ game.win_condition|default:"-" }}</span>
+      Wincon: <span>{{ game.get_win_condition_display|default:"-" }}</span>
       {% if game.turn_count %} • {{ game.turn_count }} turnos{% endif %}
     </p>
   </div>
