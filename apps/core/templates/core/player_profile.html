@@ -57,6 +57,26 @@
     </div>
   </div>
 
+  {% if win_rate_trend.svg_points %}
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">TENDÊNCIA DE WIN RATE</h2>
+    </div>
+    <div class="p-4">
+      <svg viewBox="0 0 280 60" class="w-full h-16" preserveAspectRatio="none">
+        <polyline
+          points="{{ win_rate_trend.svg_points }}"
+          fill="none"
+          stroke="#4f46e5"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
     <div class="p-4 border-b border-gray-100 bg-gray-50/50">
       <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">RECORDES PESSOAIS</h2>

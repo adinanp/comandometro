@@ -1,4 +1,5 @@
 from django.db.models import Count, Q
+from django.db.models.functions import TruncMonth
 
 from apps.core.models import Deck, Player
 from apps.core.use_cases.pod_insights import POINTS_BY_PLACEMENT
@@ -66,4 +67,31 @@ class PlayerProfileUseCase(BaseUseCase):
             "points": points,
             "commander_stats": commander_stats,
             "records": records,
+            "win_rate_trend": self._win_rate_trend(performances),
         }
+
+    def _win_rate_trend(self, performances):
+        monthly = (
+            performances.exclude(game__date__isnull=True)
+            .annotate(month=TruncMonth("game__date"))
+            .values("month")
+            .annotate(total=Count("id"), wins=Count("id", filter=Q(placement=1)))
+            .order_by("month")
+        )
+        data = []
+        for row in monthly:
+            win_rate = round((row["wins"] / row["total"] * 100), 1) if row["total"] else 0
+            data.append({"month": row["month"], "win_rate": win_rate})
+        return {"points": data, "svg_points": self._build_svg_points(data)}
+
+    def _build_svg_points(self, points):
+        if len(points) < 2:
+            return ""
+        width, height = 280, 60
+        step = width / (len(points) - 1)
+        coords = []
+        for i, point in enumerate(points):
+            x = round(i * step, 1)
+            y = round(height - (point["win_rate"] / 100 * height), 1)
+            coords.append(f"{x},{y}")
+        return " ".join(coords)
