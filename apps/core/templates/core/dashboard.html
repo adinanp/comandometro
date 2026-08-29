@@ -41,7 +41,12 @@
     <!-- Card Carta MVP -->
     <div class="p-4 bg-white border border-gray-200 rounded-xl flex items-center gap-3">
       {% if top_mvp.image_url %}
-      <img src="{{ top_mvp.image_url }}" alt="{{ top_mvp.name }}" class="w-12 h-auto rounded-md border border-gray-200" />
+      <img
+        src="{{ top_mvp.image_url }}"
+        alt="{{ top_mvp.name }}"
+        data-card-image="{{ top_mvp.image_url }}"
+        class="w-12 h-auto rounded-md border border-gray-200 cursor-zoom-in"
+      />
       {% endif %}
       <div class="min-w-0">
         <span class="text-[11px] font-bold text-amber-600 tracking-wider uppercase flex items-center gap-1">
@@ -192,110 +197,115 @@
 
   </div>
 
-  <!-- Pontuação estilo F1 -->
-  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">PONTUAÇÃO (4-2-1-0)</h2>
-    </div>
-    <div class="divide-y divide-gray-100">
-      {% for row in points_ranking %}
-      <div class="p-4 flex items-center justify-between text-sm">
-        <a href="{% url 'core:player-profile' row.player.id %}" class="font-medium text-gray-700 hover:underline">{{ row.player.name }}</a>
-        <span class="font-bold text-gray-900">{{ row.points }} pts</span>
-      </div>
-      {% empty %}
-      <div class="p-4 text-center text-xs text-gray-400">Nenhuma partida registrada.</div>
-      {% endfor %}
-    </div>
-  </div>
+  <!-- Mais Estatísticas (colapsado por padrão pra não alongar o scroll) -->
+  <div>
+    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Mais Estatísticas</h2>
+    <div class="space-y-3">
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Win rate por cor -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-        <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">WIN RATE POR COR</h2>
-      </div>
-      <div class="divide-y divide-gray-100">
-        {% for row in color_identity_stats %}
-        <div class="p-4 flex items-center justify-between text-sm">
-          <span class="font-medium text-gray-700">{{ row.color }}</span>
-          <span class="text-gray-500">{{ row.games }} jogos</span>
-          <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- Win rate por número de cores -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-        <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">WIN RATE POR Nº DE CORES</h2>
-      </div>
-      <div class="divide-y divide-gray-100">
-        {% for row in color_count_stats %}
-        <div class="p-4 flex items-center justify-between text-sm">
-          <span class="font-medium text-gray-700">{{ row.colors }} cor(es)</span>
-          <span class="text-gray-500">{{ row.games }} jogos</span>
-          <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  <!-- Top comandantes qualificados -->
-  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">TOP COMANDANTES (≥5 jogos, ≥20% WR)</h2>
-    </div>
-    <div class="divide-y divide-gray-100">
-      {% for row in top_commanders_qualified %}
-      <div class="p-4 flex items-center justify-between text-sm">
-        <span class="font-medium text-gray-700">{{ row.deck.display_commanders }}</span>
-        <span class="text-gray-500">{{ row.games }} jogos</span>
-        <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
-      </div>
-      {% empty %}
-      <div class="p-4 text-center text-xs text-gray-400">Nenhum comandante qualificado ainda.</div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- Wincon por mês -->
-  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">WINCON POR MÊS</h2>
-    </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left border-collapse text-sm">
-        <thead>
-          <tr class="bg-gray-50/30 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-            <th class="p-4">Mês</th>
-            <th class="p-4">Wincon</th>
-            <th class="p-4">Jogos</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          {% for row in wincon_trend %}
-          <tr>
-            <td class="p-4">{{ row.month|date:"M/Y" }}</td>
-            <td class="p-4 capitalize">{{ row.win_condition }}</td>
-            <td class="p-4 font-semibold">{{ row.count }}</td>
-          </tr>
+      <!-- Pontuação estilo F1 -->
+      <details class="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <summary class="p-4 bg-gray-50/50 flex items-center justify-between cursor-pointer list-none select-none">
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">PONTUAÇÃO (4-2-1-0)</h3>
+          <span class="text-gray-400 transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="divide-y divide-gray-100 border-t border-gray-100">
+          {% for row in points_ranking %}
+          <div class="p-4 flex items-center justify-between text-sm">
+            <a href="{% url 'core:player-profile' row.player.id %}" class="font-medium text-gray-700 hover:underline">{{ row.player.name }}</a>
+            <span class="font-bold text-gray-900">{{ row.points }} pts</span>
+          </div>
           {% empty %}
-          <tr><td colspan="3" class="p-6 text-center text-xs text-gray-400">Sem dados suficientes.</td></tr>
+          <div class="p-4 text-center text-xs text-gray-400">Nenhuma partida registrada.</div>
           {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
+        </div>
+      </details>
 
-  <!-- Recordes do Pod -->
-  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">RECORDES DO POD</h2>
-    </div>
-    <div class="divide-y divide-gray-100 text-sm">
+      <!-- Win rate por cor -->
+      <details class="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <summary class="p-4 bg-gray-50/50 flex items-center justify-between cursor-pointer list-none select-none">
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">WIN RATE POR COR</h3>
+          <span class="text-gray-400 transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="grid grid-cols-1 lg:grid-cols-2 border-t border-gray-100">
+          <div class="divide-y divide-gray-100 lg:border-r border-gray-100">
+            <div class="p-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Por cor individual</div>
+            {% for row in color_identity_stats %}
+            <div class="p-4 flex items-center justify-between text-sm">
+              <span class="font-medium text-gray-700">{{ row.color }}</span>
+              <span class="text-gray-500">{{ row.games }} jogos</span>
+              <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="divide-y divide-gray-100">
+            <div class="p-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Por nº de cores no deck</div>
+            {% for row in color_count_stats %}
+            <div class="p-4 flex items-center justify-between text-sm">
+              <span class="font-medium text-gray-700">{{ row.colors }} cor(es)</span>
+              <span class="text-gray-500">{{ row.games }} jogos</span>
+              <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </details>
+
+      <!-- Top comandantes qualificados -->
+      <details class="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <summary class="p-4 bg-gray-50/50 flex items-center justify-between cursor-pointer list-none select-none">
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">TOP COMANDANTES (≥5 jogos, ≥20% WR)</h3>
+          <span class="text-gray-400 transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="divide-y divide-gray-100 border-t border-gray-100">
+          {% for row in top_commanders_qualified %}
+          <div class="p-4 flex items-center justify-between text-sm">
+            <span class="font-medium text-gray-700">{{ row.deck.display_commanders }}</span>
+            <span class="text-gray-500">{{ row.games }} jogos</span>
+            <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
+          </div>
+          {% empty %}
+          <div class="p-4 text-center text-xs text-gray-400">Nenhum comandante qualificado ainda.</div>
+          {% endfor %}
+        </div>
+      </details>
+
+      <!-- Wincon por mês -->
+      <details class="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <summary class="p-4 bg-gray-50/50 flex items-center justify-between cursor-pointer list-none select-none">
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">WINCON POR MÊS</h3>
+          <span class="text-gray-400 transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="overflow-x-auto border-t border-gray-100">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-gray-50/30 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                <th class="p-4">Mês</th>
+                <th class="p-4">Wincon</th>
+                <th class="p-4">Jogos</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for row in wincon_trend %}
+              <tr>
+                <td class="p-4">{{ row.month|date:"M/Y" }}</td>
+                <td class="p-4 capitalize">{{ row.win_condition }}</td>
+                <td class="p-4 font-semibold">{{ row.count }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="p-6 text-center text-xs text-gray-400">Sem dados suficientes.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- Recordes do Pod -->
+      <details class="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <summary class="p-4 bg-gray-50/50 flex items-center justify-between cursor-pointer list-none select-none">
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">RECORDES DO POD</h3>
+          <span class="text-gray-400 transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="divide-y divide-gray-100 text-sm border-t border-gray-100">
       <div class="p-4 flex items-center justify-between">
         <span class="text-gray-500">Maior board wipe (numa partida)</span>
         {% if records.board_wipes %}
@@ -356,6 +366,9 @@
         </a>
         {% else %}<span class="text-gray-400">-</span>{% endif %}
       </div>
+        </div>
+      </details>
+
     </div>
   </div>
 
