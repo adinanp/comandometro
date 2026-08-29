@@ -67,5 +67,55 @@
     <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {% block content %}{% endblock %}
     </main>
+
+    <!-- Preview flutuante de carta, usado por qualquer elemento com data-card-image.
+         Opacidade/escala são controladas via style inline (não classes Tailwind
+         dinâmicas) para não depender do timing do compilador JIT do CDN do Tailwind
+         gerando CSS pra classes que só existem depois de um toggle via JS. -->
+    <div
+      id="card-hover-preview"
+      class="fixed z-50 pointer-events-none transition duration-150 ease-out"
+      style="left: -9999px; top: -9999px; opacity: 0; transform: scale(0.95);"
+    >
+      <img class="w-56 h-auto rounded-lg shadow-2xl border border-gray-200" alt="" />
+    </div>
+    <script>
+      (function () {
+        var preview = document.getElementById("card-hover-preview");
+        var img = preview.querySelector("img");
+        var PREVIEW_WIDTH = 224;
+        var PREVIEW_HEIGHT_ESTIMATE = 312;
+
+        function positionNear(target) {
+          var rect = target.getBoundingClientRect();
+          var left = rect.right + 12;
+          if (left + PREVIEW_WIDTH + 12 > window.innerWidth) {
+            left = rect.left - PREVIEW_WIDTH - 12;
+          }
+          var top = Math.min(rect.top, window.innerHeight - PREVIEW_HEIGHT_ESTIMATE);
+          preview.style.left = Math.max(8, left) + "px";
+          preview.style.top = Math.max(8, top) + "px";
+        }
+
+        document.addEventListener("mouseover", function (event) {
+          var target = event.target.closest("[data-card-image]");
+          if (!target) return;
+          var url = target.getAttribute("data-card-image");
+          if (!url) return;
+          img.src = url;
+          positionNear(target);
+          preview.style.opacity = "1";
+          preview.style.transform = "scale(1)";
+        });
+
+        document.addEventListener("mouseout", function (event) {
+          var target = event.target.closest("[data-card-image]");
+          if (!target) return;
+          if (target.contains(event.relatedTarget)) return;
+          preview.style.opacity = "0";
+          preview.style.transform = "scale(0.95)";
+        });
+      })();
+    </script>
   </body>
 </html>
