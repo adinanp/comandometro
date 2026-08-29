@@ -5,31 +5,16 @@ from django.conf import settings
 from django.db import migrations, models
 
 
-def wipe_existing_data(apps, schema_editor):
-    """
-    O projeto vira multi-tenant (Pod) nesta migration, e os dados que
-    existiam antes (times/decks/partidas de teste, sem pod nenhum) não têm
-    como ser atribuídos a um pod real — foram descartados por decisão
-    explícita, não migrados. `Player`/`Game` cascadeiam pra Deck,
-    GameParticipant e Achievement, então apagar só os dois já limpa tudo.
-    """
-    Game = apps.get_model("core", "Game")
-    Player = apps.get_model("core", "Player")
-    Player.objects.all().delete()
-    Game.objects.all().delete()
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
         ('cards', '0001_initial'),
-        ('core', '0008_remove_card_is_partner_eligible_and_more'),
+        ('core', '0008_5_wipe_pre_pod_data'),
         ('pods', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
-        migrations.RunPython(wipe_existing_data, reverse_code=migrations.RunPython.noop),
         migrations.AlterField(
             model_name='gameparticipant',
             name='biggest_creature',
