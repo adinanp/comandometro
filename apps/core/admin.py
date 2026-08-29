@@ -26,6 +26,11 @@ class DeckAdminForm(forms.ModelForm):
             self.fields["player"].widget = forms.HiddenInput()
             self.fields["player"].required = False
 
+    def clean_commanders(self):
+        commanders = list(self.cleaned_data.get("commanders", []))
+        Deck.validate_commanders(commanders)
+        return commanders
+
 
 class PlayerProfileInline(admin.StackedInline):
     model = PlayerProfile
@@ -95,9 +100,20 @@ class CardAdmin(admin.ModelAdmin):
         "color_identity",
         "mana_value",
         "is_commander_eligible",
-        "is_partner_eligible",
+        "can_have_partner",
+        "partner_with",
+        "can_choose_background",
+        "is_background",
     )
-    list_filter = ("is_commander_eligible", "is_partner_eligible", "color_identity")
+    list_filter = (
+        "is_commander_eligible",
+        "can_have_partner",
+        "can_choose_background",
+        "is_background",
+        "has_doctors_companion",
+        "is_the_doctor",
+        "color_identity",
+    )
     search_fields = ("name",)
     ordering = ("name",)
 

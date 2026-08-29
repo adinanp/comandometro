@@ -118,6 +118,14 @@ class Command(BaseCommand):
 
         players = list(Player.objects.all())
         eligible_commanders = list(Card.objects.filter(is_commander_eligible=True))
+        # Duplas geradas aqui só usam Partner genérico — é a única mecânica
+        # onde "pegar 2 ao acaso do pool" já garante uma combinação legal.
+        # Backgrounds ficam de fora do pool de comandante único, porque um
+        # Background nunca é válido sozinho.
+        partner_pool = [
+            c for c in eligible_commanders if c.can_have_partner and not c.partner_with_id
+        ]
+        single_pool = [c for c in eligible_commanders if not c.is_background]
 
         if len(players) < 4:
             self.stdout.write(
@@ -133,15 +141,12 @@ class Command(BaseCommand):
         for player in players:
             player_decks = Deck.objects.filter(player=player, is_active=True)
             if not player_decks.exists():
-                num_commanders = 1 if not eligible_commanders else random.choice([1, 2])
-                commanders = (
-                    random.sample(
-                        eligible_commanders,
-                        min(num_commanders, len(eligible_commanders)),
-                    )
-                    if eligible_commanders
-                    else []
-                )
+                if len(partner_pool) >= 2 and random.random() > 0.5:
+                    commanders = random.sample(partner_pool, 2)
+                elif single_pool:
+                    commanders = [random.choice(single_pool)]
+                else:
+                    commanders = []
 
                 deck = Deck.objects.create(player=player, is_active=True)
                 if commanders:

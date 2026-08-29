@@ -41,6 +41,7 @@ class Command(BaseCommand):
 
         cards_to_create = []
         cards_to_update = []
+        partner_with_names = {}
 
         existing_cards = {c.name: c for c in Card.objects.all()}
 
@@ -51,27 +52,43 @@ class Command(BaseCommand):
             card_info = printings[0]
 
             types = card_info.get("types", [])
-            subtypes = card_info.get("subtypes", [])
+            subtypes = card_info.get("subtypes") or []
             supertypes = card_info.get("supertypes", [])
-            text = card_info.get("text", "")
-            keywords = card_info.get("keywords", [])
+            text = card_info.get("text") or ""
+            keywords = card_info.get("keywords") or []
 
             # Lógica de elegibilidade de Comandante
             is_legendary_creature = "Legendary" in supertypes and "Creature" in types
-            is_background = "Background" in subtypes
+            is_background_card = "Background" in subtypes
             has_commander_text = "can be your commander" in text.lower()
 
             is_commander_eligible = (
-                is_legendary_creature or is_background or has_commander_text
+                is_legendary_creature or is_background_card or has_commander_text
             )
 
-            # Lógica de Partner / Choose a Background
-            is_partner_eligible = (
-                "Partner" in keywords
-                or "Partner with" in keywords
-                or "Choose a Background" in keywords
-                or "Doctor's companion" in keywords
-            )
+            # Habilidades de dupla de comandante. O MTGJSON grava o keyword de
+            # "Choose a Background" com "b" minúsculo — case importa aqui.
+            can_have_partner = "Partner" in keywords
+            can_choose_background = "Choose a background" in keywords
+            has_doctors_companion = "Doctor's companion" in keywords
+            # "The Doctor" (Doctor Who) não dá pra identificar só pelo subtipo
+            # "Doctor" (várias cartas sem relação nenhuma usam esse subtipo,
+            # ex: Doc Samson) — o marcador real é "Time Lord" + "Doctor" juntos.
+            is_the_doctor_card = "Time Lord" in subtypes and "Doctor" in subtypes
+
+            # "Partner with X" é nomeado — o nome do parceiro só existe no
+            # texto da carta ("Partner with <Nome> (...)"), guardamos numa
+            # segunda passada depois que todas as cartas tiverem PK.
+            partner_with_name = None
+            if "Partner with" in keywords:
+                for line in text.splitlines():
+                    if line.startswith("Partner with "):
+                        partner_with_name = (
+                            line[len("Partner with ") :].split(" (", 1)[0].strip()
+                        )
+                        break
+            if partner_with_name:
+                partner_with_names[card_name] = partner_with_name
 
             # Processamento de Identidade de Cor (ex: ['G', 'W'] -> 'GW')
             raw_colors = card_info.get("colorIdentity", [])
@@ -90,25 +107,25 @@ class Command(BaseCommand):
             identifiers = card_info.get("identifiers", {})
             scryfall_oracle_id = identifiers.get("scryfallOracleId", "")
 
+            field_values = {
+                "color_identity": color_identity,
+                "mana_value": mana_value,
+                "is_commander_eligible": is_commander_eligible,
+                "can_have_partner": can_have_partner,
+                "can_choose_background": can_choose_background,
+                "is_background": is_background_card,
+                "has_doctors_companion": has_doctors_companion,
+                "is_the_doctor": is_the_doctor_card,
+                "scryfall_oracle_id": scryfall_oracle_id,
+            }
+
             if card_name in existing_cards:
                 obj = existing_cards[card_name]
-                obj.color_identity = color_identity
-                obj.mana_value = mana_value
-                obj.is_commander_eligible = is_commander_eligible
-                obj.is_partner_eligible = is_partner_eligible
-                obj.scryfall_oracle_id = scryfall_oracle_id
+                for field, value in field_values.items():
+                    setattr(obj, field, value)
                 cards_to_update.append(obj)
             else:
-                cards_to_create.append(
-                    Card(
-                        name=card_name,
-                        color_identity=color_identity,
-                        mana_value=mana_value,
-                        is_commander_eligible=is_commander_eligible,
-                        is_partner_eligible=is_partner_eligible,
-                        scryfall_oracle_id=scryfall_oracle_id,
-                    )
-                )
+                cards_to_create.append(Card(name=card_name, **field_values))
 
         if cards_to_create:
             self.stdout.write(f"Criando {len(cards_to_create)} novas cartas...")
@@ -125,12 +142,45 @@ class Command(BaseCommand):
                     "color_identity",
                     "mana_value",
                     "is_commander_eligible",
-                    "is_partner_eligible",
+                    "can_have_partner",
+                    "can_choose_background",
+                    "is_background",
+                    "has_doctors_companion",
+                    "is_the_doctor",
                     "scryfall_oracle_id",
                 ],
                 batch_size=2000,
             )
             logger.info("Atualizadas %d cartas existentes", len(cards_to_update))
+
+        if partner_with_names:
+            self.stdout.write(
+                f"Resolvendo {len(partner_with_names)} parceiros nomeados (Partner with)..."
+            )
+            all_cards_by_name = {c.name: c for c in Card.objects.all()}
+            cards_to_link = []
+            unresolved = []
+            for card_name, partner_name in partner_with_names.items():
+                card = all_cards_by_name.get(card_name)
+                partner = all_cards_by_name.get(partner_name)
+                if not card:
+                    continue
+                if partner:
+                    card.partner_with = partner
+                    cards_to_link.append(card)
+                else:
+                    unresolved.append((card_name, partner_name))
+            if cards_to_link:
+                Card.objects.bulk_update(
+                    cards_to_link, ["partner_with"], batch_size=2000
+                )
+                logger.info("Vinculados %d parceiros nomeados", len(cards_to_link))
+            if unresolved:
+                logger.warning(
+                    "Não foi possível resolver %d parceiros nomeados: %s",
+                    len(unresolved),
+                    unresolved[:10],
+                )
 
         self.stdout.write(self.style.SUCCESS("Base de cartas atualizada com sucesso!"))
         logger.info("Import do MTGJSON concluído com sucesso")
