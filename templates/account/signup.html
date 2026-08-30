@@ -7,7 +7,7 @@
   <div class="text-center">
     <h1 class="text-2xl font-bold text-gray-900">Criar conta</h1>
     <p class="text-sm text-gray-500 mt-1">
-      Já tem conta? <a href="{% url 'account_login' %}" class="text-gray-900 font-semibold hover:underline">Entrar</a>.
+      Já tem conta? <a href="{% url 'account_login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="text-gray-900 font-semibold hover:underline">Entrar</a>.
     </p>
   </div>
 

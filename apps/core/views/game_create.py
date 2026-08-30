@@ -5,7 +5,7 @@ from apps.core.forms import (
     DeckForm,
     GameForm,
     GameParticipantFormSet,
-    build_achievements,
+    save_achievements,
     save_participants,
 )
 from apps.pods.mixins import PodMemberRequiredMixin
@@ -33,7 +33,7 @@ class GameCreateView(PodMemberRequiredMixin, View):
             game.pod = self.pod
             game.save()
             save_participants(game, formset)
-            build_achievements(game, achievement_formset)
+            save_achievements(game, achievement_formset)
             return redirect("core:game-detail", pod_slug=self.pod.slug, pk=game.pk)
         return self._render(game_form, formset, achievement_formset)
 

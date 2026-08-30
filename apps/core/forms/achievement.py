@@ -5,6 +5,7 @@ from apps.core.models import Achievement, Player
 
 
 class AchievementForm(forms.Form):
+    existing_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
     player = forms.ModelChoiceField(
         queryset=Player.objects.none(),
         required=False,
@@ -40,23 +41,39 @@ class AchievementForm(forms.Form):
         return cleaned_data
 
 
-AchievementFormSet = formset_factory(AchievementForm, extra=2, min_num=0)
+# Sempre começa vazio — o "+" no formulário adiciona linhas dinamicamente
+# via JS (ver core/game_form.html), em vez de um número fixo de linhas.
+AchievementFormSet = formset_factory(AchievementForm, extra=0, min_num=0)
 
 
-def build_achievements(game, formset):
-    """Cria os Achievement a partir de um AchievementFormSet válido."""
+def save_achievements(game, formset):
+    """
+    Cria/atualiza/remove os Achievement de uma partida a partir de um
+    AchievementFormSet válido — mesmo padrão de upsert de
+    `save_participants`. Uma linha existente que sumiu do formset (botão
+    "Remover" na edição) é apagada; como todos os campos são opcionais,
+    isso nunca colide com validação de campo obrigatório.
+    """
+    seen_ids = set()
     achievements = []
     for form in formset:
         if not form.cleaned_data or not form.cleaned_data.get("title"):
             continue
         data = form.cleaned_data
-        achievements.append(
-            Achievement.objects.create(
-                player=data["player"],
-                game=game,
-                title=data["title"],
-                detail=data.get("detail", ""),
-                date=game.date,
-            )
+        fields = dict(
+            player=data["player"],
+            title=data["title"],
+            detail=data.get("detail", ""),
         )
+        existing_id = data.get("existing_id")
+        if existing_id:
+            Achievement.objects.filter(pk=existing_id, game=game).update(**fields)
+            seen_ids.add(existing_id)
+            achievements.append(existing_id)
+        else:
+            achievement = Achievement.objects.create(game=game, date=game.date, **fields)
+            seen_ids.add(achievement.pk)
+            achievements.append(achievement)
+
+    game.achievements.exclude(pk__in=seen_ids).delete()
     return achievements

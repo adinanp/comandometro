@@ -7,7 +7,7 @@
   <div class="text-center">
     <h1 class="text-2xl font-bold text-gray-900">Entrar</h1>
     <p class="text-sm text-gray-500 mt-1">
-      Ainda não tem conta? <a href="{% url 'account_signup' %}" class="text-gray-900 font-semibold hover:underline">Cadastre-se</a>.
+      Ainda não tem conta? <a href="{% url 'account_signup' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="text-gray-900 font-semibold hover:underline">Cadastre-se</a>.
     </p>
   </div>
 

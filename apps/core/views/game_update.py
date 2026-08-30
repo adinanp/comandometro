@@ -1,15 +1,22 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
-from apps.core.forms import DeckForm, GameForm, GameParticipantFormSet, save_participants
+from apps.core.forms import (
+    AchievementFormSet,
+    DeckForm,
+    GameForm,
+    GameParticipantFormSet,
+    save_achievements,
+    save_participants,
+)
 from apps.core.models import Game
 from apps.pods.mixins import PodMemberRequiredMixin
 
 
 class GameUpdateView(PodMemberRequiredMixin, View):
     """
-    Edita uma partida já registrada — dados da partida e os participantes
-    já existentes (pra corrigir coisas como esquecer de marcar o
-    vencedor). Não mexe em achievements; isso continua um fluxo à parte.
+    Edita uma partida já registrada — dados da partida, participantes já
+    existentes (pra corrigir coisas como esquecer de marcar o vencedor) e
+    achievements (pra acrescentar um feito lembrado depois).
     """
 
     template_name = "core/game_form.html"
@@ -23,7 +30,12 @@ class GameUpdateView(PodMemberRequiredMixin, View):
         formset = GameParticipantFormSet(
             initial=self._participants_initial(game), form_kwargs={"pod": self.pod}
         )
-        return self._render(game, game_form, formset)
+        achievement_formset = AchievementFormSet(
+            initial=self._achievements_initial(game),
+            form_kwargs={"pod": self.pod},
+            prefix="achievements",
+        )
+        return self._render(game, game_form, formset, achievement_formset)
 
     def post(self, request, *args, **kwargs):
         game = self._get_game()
@@ -33,13 +45,20 @@ class GameUpdateView(PodMemberRequiredMixin, View):
             initial=self._participants_initial(game),
             form_kwargs={"pod": self.pod},
         )
-        if game_form.is_valid() and formset.is_valid():
+        achievement_formset = AchievementFormSet(
+            request.POST,
+            initial=self._achievements_initial(game),
+            form_kwargs={"pod": self.pod},
+            prefix="achievements",
+        )
+        if game_form.is_valid() and formset.is_valid() and achievement_formset.is_valid():
             game = game_form.save(commit=False)
             game.pod = self.pod
             game.save()
             save_participants(game, formset)
+            save_achievements(game, achievement_formset)
             return redirect("core:game-detail", pod_slug=self.pod.slug, pk=game.pk)
-        return self._render(game, game_form, formset)
+        return self._render(game, game_form, formset, achievement_formset)
 
     def _participants_initial(self, game):
         return [
@@ -61,7 +80,18 @@ class GameUpdateView(PodMemberRequiredMixin, View):
             for p in game.participants.all()
         ]
 
-    def _render(self, game, game_form, formset):
+    def _achievements_initial(self, game):
+        return [
+            {
+                "existing_id": a.pk,
+                "player": a.player_id,
+                "title": a.title,
+                "detail": a.detail,
+            }
+            for a in game.achievements.all()
+        ]
+
+    def _render(self, game, game_form, formset, achievement_formset):
         return render(
             self.request,
             self.template_name,
@@ -71,7 +101,7 @@ class GameUpdateView(PodMemberRequiredMixin, View):
                 "game": game,
                 "game_form": game_form,
                 "formset": formset,
-                "achievement_formset": None,
+                "achievement_formset": achievement_formset,
                 "deck_modal_form": DeckForm(pod=self.pod, prefix="new_deck"),
                 "is_edit": True,
             },

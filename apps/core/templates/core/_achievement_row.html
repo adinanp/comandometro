@@ -1,0 +1,20 @@
+{% comment %}
+Uma linha do formset de Achievement — usada tanto pras linhas já
+existentes (renderizadas pelo servidor) quanto pro <template> que o JS
+clona ao clicar em "+ Adicionar" em core/game_form.html. Espera `form`
+(um AchievementForm ou o achievement_formset.empty_form).
+{% endcomment %}
+<div class="p-4 grid grid-cols-1 sm:grid-cols-4 gap-3 items-start" data-achievement-row>
+  {{ form.existing_id }}
+  {% if form.non_field_errors %}
+  <p class="text-xs text-red-600 sm:col-span-4">{{ form.non_field_errors|join:", " }}</p>
+  {% endif %}
+  {% for field in form %}
+  {% if field.name != "existing_id" %}
+  {% include "core/_labeled_field.html" with field=field %}
+  {% endif %}
+  {% endfor %}
+  <div class="flex sm:items-end">
+    <button type="button" class="js-remove-achievement text-xs text-red-600 hover:underline">Remover</button>
+  </div>
+</div>

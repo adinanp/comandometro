@@ -76,26 +76,25 @@
 
     {% if achievement_formset %}
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-        <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Feitos / Achievements <span class="text-gray-400 font-normal normal-case lowercase">(opcional)</span></h2>
-        <p class="text-xs text-gray-400 mt-1">Momento marcante da partida? Registre aqui em vez de cadastrar por fora depois.</p>
+      <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+        <div>
+          <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Feitos / Achievements <span class="text-gray-400 font-normal normal-case lowercase">(opcional)</span></h2>
+          <p class="text-xs text-gray-400 mt-1">Momento marcante da partida? Registre aqui em vez de cadastrar por fora depois.</p>
+        </div>
+        <button type="button" id="add-achievement-row" class="text-sm font-semibold px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition whitespace-nowrap">+ Adicionar</button>
       </div>
       {{ achievement_formset.management_form }}
       {% if achievement_formset.non_form_errors %}
       <p class="text-xs text-red-600 p-4">{{ achievement_formset.non_form_errors|join:", " }}</p>
       {% endif %}
-      <div class="divide-y divide-gray-100">
+      <div id="achievement-rows" class="divide-y divide-gray-100">
         {% for achievement_form in achievement_formset %}
-        <div class="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {% if achievement_form.non_field_errors %}
-          <p class="text-xs text-red-600 sm:col-span-3">{{ achievement_form.non_field_errors|join:", " }}</p>
-          {% endif %}
-          {% for field in achievement_form %}
-          {% include "core/_labeled_field.html" with field=field %}
-          {% endfor %}
-        </div>
+        {% include "core/_achievement_row.html" with form=achievement_form %}
         {% endfor %}
       </div>
+      <template id="achievement-row-template">
+        {% include "core/_achievement_row.html" with form=achievement_formset.empty_form %}
+      </template>
     </div>
     {% endif %}
 
@@ -230,9 +229,12 @@
   })();
 
   // Filtra as opções de Deck de cada linha pelo jogador selecionado
-  // naquela mesma linha — sem round-trip, usa o data-player-id que já vem
-  // em cada <option> (DeckByPlayerSelect, em apps/core/forms/game.py).
+  // naquela mesma linha (usa o data-player-id de cada <option>, ver
+  // DeckByPlayerSelect em apps/core/forms/game.py), e impede que o mesmo
+  // jogador seja escolhido em duas linhas de participante ao mesmo tempo.
   (function () {
+    var participantRows = document.querySelectorAll("[data-participant-row]");
+
     function filterDeckOptions(row) {
       var playerSelect = row.querySelector('select[name$="-player"]');
       var deckSelect = row.querySelector('select[name$="-deck"]');
@@ -248,13 +250,63 @@
       if (!currentStillValid) deckSelect.value = "";
     }
 
-    document.querySelectorAll("[data-participant-row]").forEach(function (row) {
+    function refreshPlayerAvailability() {
+      var selectedElsewhere = [];
+      participantRows.forEach(function (row) {
+        var value = row.querySelector('select[name$="-player"]').value;
+        if (value) selectedElsewhere.push(value);
+      });
+      participantRows.forEach(function (row) {
+        var select = row.querySelector('select[name$="-player"]');
+        var currentValue = select.value;
+        Array.prototype.forEach.call(select.options, function (option) {
+          if (!option.value) return;
+          option.disabled =
+            selectedElsewhere.indexOf(option.value) !== -1 && option.value !== currentValue;
+        });
+      });
+    }
+
+    participantRows.forEach(function (row) {
       var playerSelect = row.querySelector('select[name$="-player"]');
       if (!playerSelect) return;
       playerSelect.addEventListener("change", function () {
         filterDeckOptions(row);
+        refreshPlayerAvailability();
       });
       filterDeckOptions(row);
+    });
+    refreshPlayerAvailability();
+  })();
+
+  // Seção de Feitos/Achievements dinâmica: começa vazia, "+ Adicionar"
+  // clona o <template> (empty_form do Django, com __prefix__ no lugar do
+  // índice) e incrementa TOTAL_FORMS; "Remover" só tira a linha do DOM —
+  // como todo campo do AchievementForm é opcional, uma linha ausente no
+  // POST é tratada como vazia e ignorada (ou apagada, se já existia).
+  (function () {
+    var container = document.getElementById("achievement-rows");
+    var addButton = document.getElementById("add-achievement-row");
+    var template = document.getElementById("achievement-row-template");
+    if (!container || !addButton || !template) return;
+
+    var totalFormsInput = document.querySelector('input[name="achievements-TOTAL_FORMS"]');
+
+    addButton.addEventListener("click", function () {
+      var index = parseInt(totalFormsInput.value, 10);
+      var html = template.innerHTML.replace(/__prefix__/g, index);
+      var wrapper = document.createElement("div");
+      wrapper.innerHTML = html.trim();
+      var row = wrapper.firstElementChild;
+      container.appendChild(row);
+      totalFormsInput.value = index + 1;
+      if (window.initCardPickersIn) window.initCardPickersIn(row);
+    });
+
+    container.addEventListener("click", function (event) {
+      var removeButton = event.target.closest(".js-remove-achievement");
+      if (!removeButton) return;
+      removeButton.closest("[data-achievement-row]").remove();
     });
   })();
 </script>
