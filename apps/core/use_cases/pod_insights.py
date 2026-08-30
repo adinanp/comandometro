@@ -1,7 +1,7 @@
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
 
-from apps.core.models import Deck, Game, GameParticipant, Player, WinConditionChoices
+from apps.core.models import Deck, Game, GameParticipant, Player, wincon_label
 from apps.core.use_cases.base import BaseUseCase
 
 POINTS_BY_PLACEMENT = {1: 4, 2: 2, 3: 1}
@@ -16,7 +16,6 @@ class PodInsightsUseCase(BaseUseCase):
             "points_ranking": self._points_ranking(pod, since),
             "top_commanders_qualified": self._top_commanders_qualified(pod, since),
             "seat_stats": self._seat_stats(pod, since),
-            "records": self._records(pod),
         }
 
     def _color_identity_stats(self, pod, since):
@@ -77,7 +76,7 @@ class PodInsightsUseCase(BaseUseCase):
         )
         rows = list(trend)
         for row in rows:
-            row["win_condition"] = WinConditionChoices(row["win_condition"]).label
+            row["win_condition"] = wincon_label(row["win_condition"])
         return rows
 
     def _points_ranking(self, pod, since):
@@ -139,90 +138,3 @@ class PodInsightsUseCase(BaseUseCase):
             )
         return stats
 
-    def _records(self, pod):
-        pod_participants = GameParticipant.objects.filter(game__pod=pod)
-
-        def top_by(field):
-            obj = (
-                pod_participants.select_related("player", "game")
-                .order_by(f"-{field}")
-                .first()
-            )
-            return obj if obj and getattr(obj, field) > 0 else None
-
-        most_life = (
-            pod_participants.select_related("player", "game")
-            .exclude(peak_life_total__isnull=True)
-            .order_by("-peak_life_total")
-            .first()
-        )
-        biggest_creature = (
-            pod_participants.select_related("player", "game", "biggest_creature")
-            .exclude(biggest_creature__isnull=True)
-            .order_by("-biggest_creature_power")
-            .first()
-        )
-        fastest_game_no_combo = (
-            Game.objects.filter(pod=pod)
-            .exclude(win_condition="combo")
-            .exclude(turn_count__isnull=True)
-            .order_by("turn_count")
-            .first()
-        )
-        fastest_game_combo = (
-            Game.objects.filter(pod=pod, win_condition="combo")
-            .exclude(turn_count__isnull=True)
-            .order_by("turn_count")
-            .first()
-        )
-
-        return {
-            "board_wipes": top_by("board_wipes_count"),
-            "counterspells": top_by("counterspell_count"),
-            "complaints": top_by("complaint_count"),
-            "most_life": most_life,
-            "biggest_creature": biggest_creature,
-            "self_eliminations_count": pod_participants.filter(
-                is_self_elimination=True
-            ).count(),
-            "fastest_game_no_combo": fastest_game_no_combo,
-            "fastest_game_combo": fastest_game_combo,
-            "saltiest_deck": self._saltiest_deck(pod),
-            "most_fun_deck": self._most_fun_deck(pod),
-        }
-
-    def _saltiest_deck(self, pod):
-        best = None
-        for deck in Deck.objects.filter(player__pod=pod):
-            wins = GameParticipant.objects.filter(deck=deck, placement=1)
-            if wins.count() < 3:
-                continue
-            salty_reactions = 0
-            eligible_reactions = 0
-            for win in wins:
-                opponents = GameParticipant.objects.filter(game=win.game).exclude(
-                    placement=1
-                )
-                eligible_reactions += opponents.count()
-                salty_reactions += opponents.filter(felt_salty=True).count()
-            if eligible_reactions == 0:
-                continue
-            salt_percentage = round((salty_reactions / eligible_reactions * 100), 1)
-            if best is None or salt_percentage > best["salt_percentage"]:
-                best = {"deck": deck, "salt_percentage": salt_percentage}
-        return best
-
-    def _most_fun_deck(self, pod):
-        best = None
-        for deck in Deck.objects.filter(player__pod=pod):
-            ratings = list(
-                GameParticipant.objects.filter(deck=deck)
-                .exclude(fun_rating__isnull=True)
-                .values_list("fun_rating", flat=True)
-            )
-            if len(ratings) < 3:
-                continue
-            avg_rating = round(sum(ratings) / len(ratings), 1)
-            if best is None or avg_rating > best["avg_rating"]:
-                best = {"deck": deck, "avg_rating": avg_rating}
-        return best

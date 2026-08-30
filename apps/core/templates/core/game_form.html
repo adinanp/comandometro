@@ -25,6 +25,11 @@
         {% include "core/_labeled_field.html" with field=field %}
         {% endfor %}
       </div>
+      <datalist id="wincon-datalist">
+        {% for suggestion in wincon_suggestions %}
+        <option value="{{ suggestion }}"></option>
+        {% endfor %}
+      </datalist>
     </div>
 
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">

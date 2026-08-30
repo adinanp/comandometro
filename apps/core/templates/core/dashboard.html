@@ -7,7 +7,7 @@
   <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-900">Overview do Pod</h1>
-      <p class="text-sm text-gray-500">Estatísticas acumuladas de partidas de Commander/EDH.</p>
+      <p class="text-sm text-gray-500">Estatísticas acumuladas das partidas</p>
     </div>
     <div class="flex items-center gap-2 text-xs font-medium">
       <a href="?" class="px-3 py-1.5 rounded-md border {% if not active_window %}bg-gray-900 text-white border-gray-900{% else %}text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">Sempre</a>
@@ -66,19 +66,29 @@
       </div>
     </div>
 
-    <!-- Card Métricas Totais -->
-    <div class="p-4 bg-white border border-gray-200 rounded-xl flex items-center justify-around text-center">
-      <div>
-        <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">PARTIDAS</span>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_games|default:0 }}</p>
-      </div>
-      <div class="h-8 w-px bg-gray-200"></div>
-      <div>
-        <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">DECKS</span>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_decks|default:0 }}</p>
-      </div>
+    <!-- Card Total de Partidas -->
+    <div class="p-4 bg-white border border-gray-200 rounded-xl flex flex-col items-center justify-center text-center">
+      <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">PARTIDAS</span>
+      <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_games|default:0 }}</p>
     </div>
 
+  </div>
+
+  <!-- Cards de Especialistas por Wincon -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    {% for specialist in wincon_specialists %}
+    <div class="p-4 bg-white border border-gray-200 rounded-xl">
+      <span class="text-[11px] font-bold text-gray-500 tracking-wider uppercase flex items-center gap-1">
+        {{ specialist.icon }} {{ specialist.label|upper }}
+      </span>
+      <p class="text-xl font-bold text-gray-900 mt-2 truncate">
+        {% if specialist.player_name %}
+        <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=specialist.player_id %}" class="hover:underline">{{ specialist.player_name }}</a>
+        {% else %}-{% endif %}
+      </p>
+      <p class="text-xs text-gray-400 font-medium mt-1">{{ specialist.wins }} vitórias assim</p>
+    </div>
+    {% endfor %}
   </div>
 
   <!-- Grid Principal (Wincon Modes | Ranking lado a lado, Achievements embaixo) -->
@@ -88,7 +98,7 @@
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
         <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">
-          WINCON MODES
+          TOP 5 WINCONS
         </h2>
         <span class="text-xs text-gray-400">Distribuição de vitórias</span>
       </div>
@@ -102,27 +112,34 @@
         </div>
         {% for mode in wincon_modes %}
         <div class="p-4 flex items-center justify-between text-sm">
+          {% if mode.empty %}
+          <span class="text-gray-300">—</span>
+          {% else %}
           <span class="font-medium text-gray-700">{{ mode.name }}</span>
           <div class="flex items-center gap-8">
             <span class="text-gray-500">{{ mode.count }}</span>
             <span class="font-bold text-gray-900 w-12 text-right">{{ mode.percentage }}%</span>
           </div>
+          {% endif %}
         </div>
-        {% empty %}
-        <div class="p-4 text-center text-xs text-gray-400">Nenhuma vitória registrada.</div>
         {% endfor %}
       </div>
     </div>
 
-    <!-- Ranking dos Jogadores -->
+    <!-- Top 5 Jogadores -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       <div class="p-4 border-b border-gray-100 bg-gray-50/50">
         <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">
-          RANKING DOS JOGADORES
+          TOP 5 JOGADORES
         </h2>
       </div>
       <div class="p-4 space-y-3">
         {% for player in ranked_players %}
+        {% if player.empty %}
+        <div class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50/30">
+          <span class="text-xs text-gray-300 font-semibold pl-1">#{{ forloop.counter }}</span>
+        </div>
+        {% else %}
         <div class="flex items-center justify-between p-3 rounded-xl border {% if forloop.first %}border-amber-200 bg-amber-50/20{% else %}border-gray-100 bg-gray-50/30{% endif %}">
           <div class="flex items-center gap-3">
             <span class="text-base font-bold">
@@ -143,8 +160,7 @@
             {{ player.wins }} vitórias
           </span>
         </div>
-        {% empty %}
-        <div class="text-center text-xs text-gray-400 py-4">Nenhum jogador encontrado.</div>
+        {% endif %}
         {% endfor %}
       </div>
     </div>
@@ -321,92 +337,6 @@
               {% endfor %}
             </tbody>
           </table>
-        </div>
-      </details>
-
-      <!-- Recordes do Pod -->
-      <details class="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <summary class="p-4 bg-gray-50/50 flex items-center justify-between cursor-pointer list-none select-none">
-          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">RECORDES DO POD</h3>
-          <span class="text-gray-400 transition-transform group-open:rotate-180">▾</span>
-        </summary>
-        <div class="divide-y divide-gray-100 text-sm border-t border-gray-100">
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Maior board wipe (numa partida)</span>
-        {% if records.board_wipes %}
-        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.board_wipes.game.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.board_wipes.player.name }} ({{ records.board_wipes.board_wipes_count }})
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Mais counterspells (numa partida)</span>
-        {% if records.counterspells %}
-        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.counterspells.game.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.counterspells.player.name }} ({{ records.counterspells.counterspell_count }})
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Maior chorão (numa partida)</span>
-        {% if records.complaints %}
-        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.complaints.game.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.complaints.player.name }} ({{ records.complaints.complaint_count }})
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Mais vida numa partida</span>
-        {% if records.most_life %}
-        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.most_life.game.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.most_life.player.name }} ({{ records.most_life.peak_life_total }})
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Maior criatura (poder alcançado)</span>
-        {% if records.biggest_creature %}
-        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.biggest_creature.game.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.biggest_creature.biggest_creature.name }} ({{ records.biggest_creature.biggest_creature_power }})
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Suicídios registrados</span>
-        <span class="font-semibold text-gray-900">{{ records.self_eliminations_count }}</span>
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Jogo mais rápido (sem combo)</span>
-        {% if records.fastest_game_no_combo %}
-        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.fastest_game_no_combo.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.fastest_game_no_combo.turn_count }} turnos
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Jogo mais rápido (com combo)</span>
-        {% if records.fastest_game_combo %}
-        <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=records.fastest_game_combo.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.fastest_game_combo.turn_count }} turnos
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">🧂 Deck mais "salgado" (min. 3 vitórias)</span>
-        {% if records.saltiest_deck %}
-        <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=records.saltiest_deck.deck.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.saltiest_deck.deck.display_commanders }} ({{ records.saltiest_deck.salt_percentage }}%)
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
-      <div class="p-4 flex items-center justify-between">
-        <span class="text-gray-500">Deck mais divertido (min. 3 notas)</span>
-        {% if records.most_fun_deck %}
-        <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=records.most_fun_deck.deck.id %}" class="font-semibold text-gray-900 hover:underline">
-          {{ records.most_fun_deck.deck.display_commanders }} ({{ records.most_fun_deck.avg_rating }}/5)
-        </a>
-        {% else %}<span class="text-gray-400">-</span>{% endif %}
-      </div>
         </div>
       </details>
 

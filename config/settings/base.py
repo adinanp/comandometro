@@ -162,7 +162,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+# pt-br faz o Django e o allauth usarem suas próprias traduções pra
+# mensagens nativas (erro de campo obrigatório, validação de senha,
+# "Successfully signed in" etc.) sem precisar reescrever cada uma na mão.
+LANGUAGE_CODE = "pt-br"
 
 TIME_ZONE = "UTC"
 

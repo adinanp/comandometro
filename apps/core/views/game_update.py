@@ -8,7 +8,7 @@ from apps.core.forms import (
     save_achievements,
     save_participants,
 )
-from apps.core.models import Game
+from apps.core.models import Game, wincon_suggestions
 from apps.pods.mixins import PodMemberRequiredMixin
 
 
@@ -103,6 +103,7 @@ class GameUpdateView(PodMemberRequiredMixin, View):
                 "formset": formset,
                 "achievement_formset": achievement_formset,
                 "deck_modal_form": DeckForm(pod=self.pod, prefix="new_deck"),
+                "wincon_suggestions": wincon_suggestions(self.pod),
                 "is_edit": True,
             },
         )

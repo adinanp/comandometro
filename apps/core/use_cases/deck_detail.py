@@ -1,6 +1,6 @@
 from django.db.models import Count
 
-from apps.core.models import Deck, Game, GameParticipant, WinConditionChoices
+from apps.core.models import Deck, Game, GameParticipant, wincon_label
 from apps.core.use_cases.base import BaseUseCase
 
 
@@ -63,7 +63,7 @@ class DeckDetailUseCase(BaseUseCase):
             pct = round((row["count"] / total * 100), 1) if total else 0
             breakdown.append(
                 {
-                    "name": WinConditionChoices(row["win_condition"]).label,
+                    "name": wincon_label(row["win_condition"]),
                     "count": row["count"],
                     "percentage": pct,
                 }

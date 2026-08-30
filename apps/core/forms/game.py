@@ -3,7 +3,14 @@ from django.forms import formset_factory
 
 from apps.cards.models import Card
 from apps.cards.widgets import CardPickerWidget
-from apps.core.models import Deck, Game, GameParticipant, Player, WinConditionChoices
+from apps.core.models import (
+    Deck,
+    Game,
+    GameParticipant,
+    Player,
+    resolve_win_condition,
+    wincon_label,
+)
 
 
 class DeckByPlayerSelect(forms.Select):
@@ -27,18 +34,25 @@ class DeckByPlayerSelect(forms.Select):
 
 
 class GameForm(forms.ModelForm):
+    win_condition = forms.CharField(
+        required=True,
+        label="Condição de vitória",
+        help_text="Escolha uma sugestão ou digite uma wincon nova.",
+        widget=forms.TextInput(
+            attrs={"class": "form-input", "list": "wincon-datalist", "autocomplete": "off"}
+        ),
+    )
+
     class Meta:
         model = Game
         fields = ["date", "win_condition", "turn_count", "notes"]
         labels = {
             "date": "Data",
-            "win_condition": "Condição de vitória",
             "turn_count": "Contagem de turnos",
             "notes": "Notas",
         }
         widgets = {
             "date": forms.DateInput(attrs={"type": "date", "class": "form-input"}),
-            "win_condition": forms.Select(attrs={"class": "form-input"}),
             "turn_count": forms.NumberInput(attrs={"class": "form-input", "min": 0}),
             "notes": forms.Textarea(attrs={"class": "form-input", "rows": 3}),
         }
@@ -46,10 +60,11 @@ class GameForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["date"].required = True
-        self.fields["win_condition"].required = True
-        self.fields["win_condition"].choices = [("", "Selecione uma opção")] + list(
-            WinConditionChoices.choices
-        )
+        if self.instance and self.instance.pk:
+            self.fields["win_condition"].initial = wincon_label(self.instance.win_condition)
+
+    def clean_win_condition(self):
+        return resolve_win_condition(self.cleaned_data["win_condition"])
 
 
 class GameParticipantForm(forms.Form):
