@@ -1,0 +1,42 @@
+{% comment %}
+Uma linha do formset de GameParticipant — usada tanto pras linhas já
+existentes (renderizadas pelo servidor) quanto pro <template> que o JS
+clona ao clicar em "+ Adicionar Jogador" em core/game_form.html. Espera
+`form` (um GameParticipantForm ou o formset.empty_form).
+{% endcomment %}
+<div class="p-4 space-y-3" data-participant-row>
+  {{ form.existing_id }}
+  <div class="hidden">{{ form.DELETE }}</div>
+  <div class="flex items-center justify-between">
+    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Participante</p>
+    <button type="button" class="js-remove-participant text-xs text-red-600 hover:underline">Remover</button>
+  </div>
+  {% if form.non_field_errors %}
+  <p class="text-xs text-red-600">{{ form.non_field_errors|join:", " }}</p>
+  {% endif %}
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    {% for field in form %}
+    {% if field.name != "is_self_elimination" and field.name != "felt_salty" and field.name != "existing_id" and field.name != "DELETE" %}
+      {% if field.name == "deck" %}
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+            {{ field.label }}
+            <span class="text-gray-400 font-normal normal-case lowercase">(opcional)</span>
+          </label>
+          <button type="button" class="js-open-deck-modal text-[11px] font-semibold text-gray-600 hover:text-gray-900">+ Criar deck</button>
+        </div>
+        {{ field }}
+        {% if field.errors %}<p class="text-xs text-red-600 mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+      </div>
+      {% else %}
+      {% include "core/_labeled_field.html" with field=field %}
+      {% endif %}
+    {% endif %}
+    {% endfor %}
+  </div>
+  <div class="flex items-center gap-6 text-xs text-gray-600">
+    {% include "core/_labeled_field.html" with field=form.is_self_elimination %}
+    {% include "core/_labeled_field.html" with field=form.felt_salty %}
+  </div>
+</div>

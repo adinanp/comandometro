@@ -52,7 +52,9 @@ class GameForm(forms.ModelForm):
             "notes": "Notas",
         }
         widgets = {
-            "date": forms.DateInput(attrs={"type": "date", "class": "form-input"}),
+            "date": forms.DateInput(
+                attrs={"type": "date", "class": "form-input"}, format="%Y-%m-%d"
+            ),
             "turn_count": forms.NumberInput(attrs={"class": "form-input", "min": 0}),
             "notes": forms.Textarea(attrs={"class": "form-input", "rows": 3}),
         }
@@ -166,7 +168,7 @@ class GameParticipantForm(forms.Form):
 
 
 GameParticipantFormSet = formset_factory(
-    GameParticipantForm, extra=2, min_num=2, validate_min=True
+    GameParticipantForm, extra=0, min_num=2, validate_min=True, can_delete=True
 )
 
 
@@ -176,9 +178,20 @@ def save_participants(game, formset):
     válido. Linhas com `existing_id` (pré-carregado na edição de uma
     partida) atualizam o participante existente; as demais criam um novo
     — a mesma função serve tanto pra criar quanto pra editar uma partida.
+
+    Linhas marcadas para remoção (`can_delete=True` — ver game_form.html,
+    o "Remover" de cada linha marca esse campo e esconde a linha em vez de
+    tirar do DOM) apagam o participante existente, se houver, e são
+    ignoradas do resto do processamento.
     """
     participants = []
+    deleted_ids = []
     for form in formset:
+        if form in formset.deleted_forms:
+            existing_id = form.cleaned_data.get("existing_id") if form.cleaned_data else None
+            if existing_id:
+                deleted_ids.append(existing_id)
+            continue
         if not form.cleaned_data or not form.cleaned_data.get("player"):
             continue
         data = form.cleaned_data
@@ -204,4 +217,6 @@ def save_participants(game, formset):
             participants.append(
                 GameParticipant.objects.create(game=game, **fields)
             )
+    if deleted_ids:
+        GameParticipant.objects.filter(pk__in=deleted_ids, game=game).delete()
     return participants

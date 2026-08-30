@@ -33,50 +33,25 @@
     </div>
 
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-        <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Participantes</h2>
-        <p class="text-xs text-gray-400 mt-1">Só o jogador é obrigatório por linha — deixe o resto em branco se não quiser detalhar.</p>
+      <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+        <div>
+          <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Participantes</h2>
+          <p class="text-xs text-gray-400 mt-1">Só o jogador é obrigatório por linha — deixe o resto em branco se não quiser detalhar. Mínimo de 2 jogadores.</p>
+        </div>
+        <button type="button" id="add-participant-row" class="text-sm font-semibold px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition whitespace-nowrap">+ Adicionar Jogador</button>
       </div>
       {{ formset.management_form }}
       {% if formset.non_form_errors %}
       <p class="text-xs text-red-600 p-4">{{ formset.non_form_errors|join:", " }}</p>
       {% endif %}
-      <div class="divide-y divide-gray-100">
+      <div id="participant-rows" class="divide-y divide-gray-100">
         {% for participant_form in formset %}
-        <div class="p-4 space-y-3" data-participant-row>
-          {{ participant_form.existing_id }}
-          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Participante {{ forloop.counter }}</p>
-          {% if participant_form.non_field_errors %}
-          <p class="text-xs text-red-600">{{ participant_form.non_field_errors|join:", " }}</p>
-          {% endif %}
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {% for field in participant_form %}
-            {% if field.name != "is_self_elimination" and field.name != "felt_salty" and field.name != "existing_id" %}
-              {% if field.name == "deck" %}
-              <div>
-                <div class="flex items-center justify-between mb-1">
-                  <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    {{ field.label }}
-                    <span class="text-gray-400 font-normal normal-case lowercase">(opcional)</span>
-                  </label>
-                  <button type="button" class="js-open-deck-modal text-[11px] font-semibold text-gray-600 hover:text-gray-900">+ Criar deck</button>
-                </div>
-                {{ field }}
-                {% if field.errors %}<p class="text-xs text-red-600 mt-1">{{ field.errors|join:", " }}</p>{% endif %}
-              </div>
-              {% else %}
-              {% include "core/_labeled_field.html" with field=field %}
-              {% endif %}
-            {% endif %}
-            {% endfor %}
-          </div>
-          <div class="flex items-center gap-6 text-xs text-gray-600">
-            {% include "core/_labeled_field.html" with field=participant_form.is_self_elimination %}
-            {% include "core/_labeled_field.html" with field=participant_form.felt_salty %}
-          </div>
-        </div>
+        {% include "core/_participant_row.html" with form=participant_form %}
         {% endfor %}
       </div>
+      <template id="participant-row-template">
+        {% include "core/_participant_row.html" with form=formset.empty_form %}
+      </template>
     </div>
 
     {% if achievement_formset %}
@@ -170,12 +145,6 @@
       activeRow = null;
     }
 
-    document.querySelectorAll(".js-open-deck-modal").forEach(function (button) {
-      button.addEventListener("click", function () {
-        openModal(button.closest("[data-participant-row]"));
-      });
-    });
-
     closeBtn.addEventListener("click", closeModal);
     modal.addEventListener("click", function (event) {
       if (event.target === modal) closeModal();
@@ -231,14 +200,29 @@
           closeModal();
         });
     });
-  })();
 
-  // Filtra as opções de Deck de cada linha pelo jogador selecionado
-  // naquela mesma linha (usa o data-player-id de cada <option>, ver
-  // DeckByPlayerSelect em apps/core/forms/game.py), e impede que o mesmo
-  // jogador seja escolhido em duas linhas de participante ao mesmo tempo.
-  (function () {
-    var participantRows = document.querySelectorAll("[data-participant-row]");
+    // Participantes: formset dinâmico (mesmo padrão dos achievements) —
+    // "+ Adicionar Jogador" clona o <template> (empty_form do Django, com
+    // __prefix__ no lugar do índice) e incrementa TOTAL_FORMS. "Remover"
+    // NÃO tira a linha do DOM — em vez disso marca o campo DELETE do
+    // Django (formset com can_delete=True) e esconde a linha. Isso importa
+    // porque `player` é obrigatório: só tirar a linha do POST faria a
+    // validação falhar; com DELETE marcado, o Django ignora os erros dessa
+    // linha e save_participants() trata como remoção (ver apps/core/forms/game.py).
+    var participantsContainer = document.getElementById("participant-rows");
+    var addParticipantButton = document.getElementById("add-participant-row");
+    var participantTemplate = document.getElementById("participant-row-template");
+    var participantTotalForms = document.querySelector('input[name="form-TOTAL_FORMS"]');
+
+    function activeParticipantRows() {
+      return Array.prototype.filter.call(
+        document.querySelectorAll("[data-participant-row]"),
+        function (row) {
+          var deleteInput = row.querySelector('input[name$="-DELETE"]');
+          return !deleteInput || !deleteInput.checked;
+        }
+      );
+    }
 
     function filterDeckOptions(row) {
       var playerSelect = row.querySelector('select[name$="-player"]');
@@ -256,12 +240,13 @@
     }
 
     function refreshPlayerAvailability() {
+      var rows = activeParticipantRows();
       var selectedElsewhere = [];
-      participantRows.forEach(function (row) {
+      rows.forEach(function (row) {
         var value = row.querySelector('select[name$="-player"]').value;
         if (value) selectedElsewhere.push(value);
       });
-      participantRows.forEach(function (row) {
+      rows.forEach(function (row) {
         var select = row.querySelector('select[name$="-player"]');
         var currentValue = select.value;
         Array.prototype.forEach.call(select.options, function (option) {
@@ -272,16 +257,52 @@
       });
     }
 
-    participantRows.forEach(function (row) {
+    function wireParticipantRow(row) {
       var playerSelect = row.querySelector('select[name$="-player"]');
-      if (!playerSelect) return;
-      playerSelect.addEventListener("change", function () {
+      if (playerSelect) {
+        playerSelect.addEventListener("change", function () {
+          filterDeckOptions(row);
+          refreshPlayerAvailability();
+        });
         filterDeckOptions(row);
+      }
+      var deckModalButton = row.querySelector(".js-open-deck-modal");
+      if (deckModalButton) {
+        deckModalButton.addEventListener("click", function () {
+          openModal(row);
+        });
+      }
+    }
+
+    document.querySelectorAll("[data-participant-row]").forEach(wireParticipantRow);
+    refreshPlayerAvailability();
+
+    if (addParticipantButton) {
+      addParticipantButton.addEventListener("click", function () {
+        var index = parseInt(participantTotalForms.value, 10);
+        var html = participantTemplate.innerHTML.replace(/__prefix__/g, index);
+        var wrapper = document.createElement("div");
+        wrapper.innerHTML = html.trim();
+        var row = wrapper.firstElementChild;
+        participantsContainer.appendChild(row);
+        participantTotalForms.value = index + 1;
+        wireParticipantRow(row);
+        refreshPlayerAvailability();
+        if (window.initCardPickersIn) window.initCardPickersIn(row);
+      });
+    }
+
+    if (participantsContainer) {
+      participantsContainer.addEventListener("click", function (event) {
+        var removeButton = event.target.closest(".js-remove-participant");
+        if (!removeButton) return;
+        var row = removeButton.closest("[data-participant-row]");
+        var deleteInput = row.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) deleteInput.checked = true;
+        row.classList.add("hidden");
         refreshPlayerAvailability();
       });
-      filterDeckOptions(row);
-    });
-    refreshPlayerAvailability();
+    }
   })();
 
   // Seção de Feitos/Achievements dinâmica: começa vazia, "+ Adicionar"
