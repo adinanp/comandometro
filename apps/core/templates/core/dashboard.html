@@ -73,10 +73,25 @@
       </div>
     </div>
 
-    <!-- Card Total de Partidas -->
-    <div class="p-4 bg-white border border-gray-200 rounded-xl flex flex-col items-center justify-center text-center">
-      <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">PARTIDAS</span>
-      <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_games|default:0 }}</p>
+    <!-- Card Métricas Totais -->
+    <div class="p-4 bg-white border border-gray-200 rounded-xl flex items-center justify-around text-center">
+      <div>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">PARTIDAS</span>
+        <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_games|default:0 }}</p>
+      </div>
+      <div class="h-8 w-px bg-gray-200"></div>
+      <div>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase flex items-center justify-center gap-1">
+          MÉDIA DE DURAÇÃO
+          <span
+            title="Média de turnos até o fim da partida — calculada só sobre partidas com contagem de turnos preenchida. Como esse campo é opcional, o número pode ficar impreciso se partidas (ex: presenciais) forem registradas sem essa informação."
+            class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold normal-case cursor-help"
+          >?</span>
+        </span>
+        <p class="text-2xl font-bold text-gray-900 mt-1">
+          {% if avg_turn_count %}{{ avg_turn_count }}{% else %}-{% endif %}
+        </p>
+      </div>
     </div>
 
   </div>
