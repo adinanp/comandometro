@@ -27,11 +27,12 @@
         </thead>
         <tbody class="divide-y divide-gray-100">
           {% for game in games %}
-          <tr class="hover:bg-gray-50/50 transition">
-            <td class="p-4">
-              <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=game.id %}" class="font-semibold text-gray-900 hover:underline">
-                {{ game.date|date:"d/m/Y"|default:"Sem data" }}
-              </a>
+          <tr
+            class="hover:bg-gray-50/50 transition cursor-pointer"
+            onclick="window.location='{% url 'core:game-detail' pod_slug=pod.slug pk=game.id %}'"
+          >
+            <td class="p-4 font-semibold text-gray-900">
+              {{ game.date|date:"d/m/Y"|default:"Sem data" }}
             </td>
             <td class="p-4">{{ game.get_win_condition_display|default:"-" }}</td>
             <td class="p-4 text-gray-600">

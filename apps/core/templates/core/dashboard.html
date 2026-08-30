@@ -9,10 +9,17 @@
       <h1 class="text-2xl font-bold text-gray-900">Overview do Pod</h1>
       <p class="text-sm text-gray-500">Estatísticas acumuladas das partidas</p>
     </div>
-    <div class="flex items-center gap-2 text-xs font-medium">
-      <a href="?" class="px-3 py-1.5 rounded-md border {% if not active_window %}bg-gray-900 text-white border-gray-900{% else %}text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">Sempre</a>
-      <a href="?days=30" class="px-3 py-1.5 rounded-md border {% if active_window == '30' %}bg-gray-900 text-white border-gray-900{% else %}text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">30 dias</a>
-      <a href="?days=7" class="px-3 py-1.5 rounded-md border {% if active_window == '7' %}bg-gray-900 text-white border-gray-900{% else %}text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">7 dias</a>
+    <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 text-xs font-medium">
+        <a href="?" class="px-3 py-1.5 rounded-md border {% if not active_window %}bg-gray-900 text-white border-gray-900{% else %}text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">Sempre</a>
+        <a href="?days=30" class="px-3 py-1.5 rounded-md border {% if active_window == '30' %}bg-gray-900 text-white border-gray-900{% else %}text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">30 dias</a>
+        <a href="?days=7" class="px-3 py-1.5 rounded-md border {% if active_window == '7' %}bg-gray-900 text-white border-gray-900{% else %}text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">7 dias</a>
+      </div>
+      <a
+        href="{% url 'core:game-create' pod_slug=pod.slug %}"
+        class="text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
+        >Nova Partida</a
+      >
     </div>
   </div>
 
