@@ -1,6 +1,7 @@
 from .player import PlayerForm, PlayerProfileForm
 from .deck import DeckForm
-from .game import GameForm, GameParticipantFormSet, build_participants
+from .game import GameForm, GameParticipantFormSet, save_participants
+from .achievement import AchievementFormSet, build_achievements
 
 __all__ = [
     "PlayerForm",
@@ -8,5 +9,7 @@ __all__ = [
     "DeckForm",
     "GameForm",
     "GameParticipantFormSet",
-    "build_participants",
+    "save_participants",
+    "AchievementFormSet",
+    "build_achievements",
 ]

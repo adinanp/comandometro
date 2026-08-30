@@ -19,7 +19,7 @@ class Player(models.Model):
         null=True,
         blank=True,
         related_name="players",
-        help_text="Conta vinculada, se o jogador tiver login (opcional — permite jogador convidado)",
+        help_text="Conta vinculada a este jogador (todo jogador criado via convite/criação de pod já vem com uma)",
     )
     name = models.CharField(
         max_length=100, help_text="Nome completo ou oficial do jogador"

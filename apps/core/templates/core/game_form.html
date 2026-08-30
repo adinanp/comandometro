@@ -8,7 +8,7 @@
   </button>
 
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Nova Partida</h1>
+    <h1 class="text-2xl font-bold text-gray-900">{% if is_edit %}Editar Partida{% else %}Nova Partida{% endif %}</h1>
     <p class="text-sm text-gray-500">Registre o resultado e quem participou. Preencha só as linhas dos jogadores que jogaram.</p>
   </div>
 
@@ -39,13 +39,14 @@
       <div class="divide-y divide-gray-100">
         {% for participant_form in formset %}
         <div class="p-4 space-y-3" data-participant-row>
+          {{ participant_form.existing_id }}
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Participante {{ forloop.counter }}</p>
           {% if participant_form.non_field_errors %}
           <p class="text-xs text-red-600">{{ participant_form.non_field_errors|join:", " }}</p>
           {% endif %}
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {% for field in participant_form %}
-            {% if field.name != "is_self_elimination" and field.name != "felt_salty" %}
+            {% if field.name != "is_self_elimination" and field.name != "felt_salty" and field.name != "existing_id" %}
               {% if field.name == "deck" %}
               <div>
                 <div class="flex items-center justify-between mb-1">
@@ -73,8 +74,33 @@
       </div>
     </div>
 
+    {% if achievement_formset %}
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+        <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Feitos / Achievements <span class="text-gray-400 font-normal normal-case lowercase">(opcional)</span></h2>
+        <p class="text-xs text-gray-400 mt-1">Momento marcante da partida? Registre aqui em vez de cadastrar por fora depois.</p>
+      </div>
+      {{ achievement_formset.management_form }}
+      {% if achievement_formset.non_form_errors %}
+      <p class="text-xs text-red-600 p-4">{{ achievement_formset.non_form_errors|join:", " }}</p>
+      {% endif %}
+      <div class="divide-y divide-gray-100">
+        {% for achievement_form in achievement_formset %}
+        <div class="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {% if achievement_form.non_field_errors %}
+          <p class="text-xs text-red-600 sm:col-span-3">{{ achievement_form.non_field_errors|join:", " }}</p>
+          {% endif %}
+          {% for field in achievement_form %}
+          {% include "core/_labeled_field.html" with field=field %}
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <button type="submit" class="w-full text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition">
-      Registrar Partida
+      {% if is_edit %}Salvar Alterações{% else %}Registrar Partida{% endif %}
     </button>
   </form>
 
@@ -108,8 +134,26 @@
     var errorsBox = document.getElementById("deck-modal-errors");
     var activeRow = null;
 
+    function resetDeckModalForm() {
+      var form = document.getElementById("deck-modal-form");
+      var playerSelect = form.querySelector('select[name$="-player"]');
+      if (playerSelect) playerSelect.selectedIndex = 0;
+      form.querySelectorAll(".card-picker").forEach(function (picker) {
+        var input = picker.querySelector(".card-picker-input");
+        var hidden = picker.querySelector(".card-picker-value");
+        input.value = "";
+        hidden.value = "";
+        delete hidden.dataset.selectedName;
+      });
+      var commander2Section = form.querySelector("[data-commander-2-section]");
+      if (commander2Section) commander2Section.classList.add("hidden");
+      var activeCheckbox = form.querySelector('input[name$="-is_active"]');
+      if (activeCheckbox) activeCheckbox.checked = true;
+    }
+
     function openModal(row) {
       activeRow = row;
+      resetDeckModalForm();
       errorsBox.classList.add("hidden");
       errorsBox.innerHTML = "";
       modal.classList.remove("hidden");
@@ -174,10 +218,43 @@
             option.value = result.data.id;
             option.textContent = result.data.name;
             option.selected = true;
+            var modalPlayerSelect = document.getElementById("deck-modal-form").querySelector('select[name$="-player"]');
+            if (modalPlayerSelect && modalPlayerSelect.value) {
+              option.setAttribute("data-player-id", modalPlayerSelect.value);
+            }
             select.appendChild(option);
           }
           closeModal();
         });
+    });
+  })();
+
+  // Filtra as opções de Deck de cada linha pelo jogador selecionado
+  // naquela mesma linha — sem round-trip, usa o data-player-id que já vem
+  // em cada <option> (DeckByPlayerSelect, em apps/core/forms/game.py).
+  (function () {
+    function filterDeckOptions(row) {
+      var playerSelect = row.querySelector('select[name$="-player"]');
+      var deckSelect = row.querySelector('select[name$="-deck"]');
+      if (!playerSelect || !deckSelect) return;
+      var playerId = playerSelect.value;
+      var currentStillValid = false;
+      Array.prototype.forEach.call(deckSelect.options, function (option) {
+        var optionPlayerId = option.getAttribute("data-player-id");
+        var visible = !optionPlayerId || optionPlayerId === playerId;
+        option.hidden = !visible;
+        if (visible && option.selected) currentStillValid = true;
+      });
+      if (!currentStillValid) deckSelect.value = "";
+    }
+
+    document.querySelectorAll("[data-participant-row]").forEach(function (row) {
+      var playerSelect = row.querySelector('select[name$="-player"]');
+      if (!playerSelect) return;
+      playerSelect.addEventListener("change", function () {
+        filterDeckOptions(row);
+      });
+      filterDeckOptions(row);
     });
   })();
 </script>

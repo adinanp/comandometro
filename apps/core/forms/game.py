@@ -6,6 +6,26 @@ from apps.cards.widgets import CardPickerWidget
 from apps.core.models import Deck, Game, GameParticipant, Player, WinConditionChoices
 
 
+class DeckByPlayerSelect(forms.Select):
+    """
+    <select> de Deck com `data-player-id` em cada <option>, pro JS filtrar
+    os decks pelo jogador escolhido na mesma linha do formset sem precisar
+    de ida ao servidor — ver core/game_form.html.
+    """
+
+    def __init__(self, player_by_deck=None, attrs=None):
+        self.player_by_deck = player_by_deck or {}
+        super().__init__(attrs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        raw_value = getattr(value, "value", value)
+        player_id = self.player_by_deck.get(raw_value)
+        if player_id:
+            option["attrs"]["data-player-id"] = player_id
+        return option
+
+
 class GameForm(forms.ModelForm):
     class Meta:
         model = Game
@@ -33,6 +53,7 @@ class GameForm(forms.ModelForm):
 
 
 class GameParticipantForm(forms.Form):
+    existing_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
     player = forms.ModelChoiceField(
         queryset=Player.objects.none(),
         label="Jogador",
@@ -42,7 +63,7 @@ class GameParticipantForm(forms.Form):
         queryset=Deck.objects.none(),
         required=False,
         label="Deck",
-        widget=forms.Select(attrs={"class": "form-input"}),
+        widget=DeckByPlayerSelect(attrs={"class": "form-input"}),
     )
     placement = forms.IntegerField(
         min_value=1,
@@ -113,10 +134,12 @@ class GameParticipantForm(forms.Form):
         self.pod = pod
         self.fields["player"].queryset = Player.objects.filter(pod=pod).order_by("name")
         self.fields["player"].empty_label = "Selecione um jogador"
-        self.fields["deck"].queryset = Deck.objects.filter(player__pod=pod).order_by(
-            "player__name"
-        )
+        decks = list(Deck.objects.filter(player__pod=pod).order_by("player__name"))
+        self.fields["deck"].queryset = Deck.objects.filter(
+            pk__in=[d.pk for d in decks]
+        ).order_by("player__name")
         self.fields["deck"].empty_label = "Sem deck definido"
+        self.fields["deck"].widget.player_by_deck = {d.pk: d.player_id for d in decks}
 
     def clean(self):
         cleaned_data = super().clean()
@@ -132,28 +155,38 @@ GameParticipantFormSet = formset_factory(
 )
 
 
-def build_participants(game, formset):
-    """Cria os GameParticipant a partir de um GameParticipantFormSet válido."""
+def save_participants(game, formset):
+    """
+    Cria/atualiza os GameParticipant a partir de um GameParticipantFormSet
+    válido. Linhas com `existing_id` (pré-carregado na edição de uma
+    partida) atualizam o participante existente; as demais criam um novo
+    — a mesma função serve tanto pra criar quanto pra editar uma partida.
+    """
     participants = []
     for form in formset:
         if not form.cleaned_data or not form.cleaned_data.get("player"):
             continue
         data = form.cleaned_data
-        participants.append(
-            GameParticipant.objects.create(
-                game=game,
-                player=data["player"],
-                deck=data.get("deck"),
-                placement=data.get("placement"),
-                kill_count=data.get("kill_count") or 0,
-                mvp_card=data.get("mvp_card"),
-                peak_life_total=data.get("peak_life_total"),
-                board_wipes_count=data.get("board_wipes_count") or 0,
-                counterspell_count=data.get("counterspell_count") or 0,
-                complaint_count=data.get("complaint_count") or 0,
-                is_self_elimination=data.get("is_self_elimination", False),
-                starting_seat=data.get("starting_seat"),
-                felt_salty=data.get("felt_salty", False),
-            )
+        fields = dict(
+            player=data["player"],
+            deck=data.get("deck"),
+            placement=data.get("placement"),
+            kill_count=data.get("kill_count") or 0,
+            mvp_card=data.get("mvp_card"),
+            peak_life_total=data.get("peak_life_total"),
+            board_wipes_count=data.get("board_wipes_count") or 0,
+            counterspell_count=data.get("counterspell_count") or 0,
+            complaint_count=data.get("complaint_count") or 0,
+            is_self_elimination=data.get("is_self_elimination", False),
+            starting_seat=data.get("starting_seat"),
+            felt_salty=data.get("felt_salty", False),
         )
+        existing_id = data.get("existing_id")
+        if existing_id:
+            GameParticipant.objects.filter(pk=existing_id, game=game).update(**fields)
+            participants.append(existing_id)
+        else:
+            participants.append(
+                GameParticipant.objects.create(game=game, **fields)
+            )
     return participants

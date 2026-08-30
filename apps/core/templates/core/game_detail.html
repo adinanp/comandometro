@@ -7,12 +7,19 @@
     ← Voltar
   </button>
 
-  <div>
-    <h1 class="text-2xl font-bold text-gray-900">Partida de {{ game.date|date:"d/m/Y"|default:"data desconhecida" }}</h1>
-    <p class="text-sm text-gray-500">
-      Wincon: <span>{{ game.get_win_condition_display|default:"-" }}</span>
-      {% if game.turn_count %} • {{ game.turn_count }} turnos{% endif %}
-    </p>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Partida de {{ game.date|date:"d/m/Y"|default:"data desconhecida" }}</h1>
+      <p class="text-sm text-gray-500">
+        Wincon: <span>{{ game.get_win_condition_display|default:"-" }}</span>
+        {% if game.turn_count %} • {{ game.turn_count }} turnos{% endif %}
+      </p>
+    </div>
+    <a
+      href="{% url 'core:game-update' pod_slug=pod.slug pk=game.id %}"
+      class="text-sm font-semibold px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+      >Editar</a
+    >
   </div>
 
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -47,7 +54,7 @@
                 {% endfor %}
               </div>
             </td>
-            <td class="p-4">{{ row.participant.placement }}º</td>
+            <td class="p-4">{% if row.participant.placement %}{{ row.participant.placement }}º{% else %}-{% endif %}</td>
             <td class="p-4">{{ row.participant.kill_count }}</td>
             <td class="p-4">{{ row.participant.board_wipes_count }}</td>
             <td class="p-4">{{ row.participant.counterspell_count }}</td>
@@ -64,6 +71,25 @@
       </table>
     </div>
   </div>
+
+  {% if achievements %}
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+      <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Feitos da Partida</h2>
+    </div>
+    <div class="divide-y divide-gray-100">
+      {% for achievement in achievements %}
+      <div class="p-4 flex items-center justify-between text-sm">
+        <div>
+          <span class="font-medium text-gray-900">{{ achievement.title }}</span>
+          {% if achievement.detail %}<span class="text-gray-500"> — {{ achievement.detail }}</span>{% endif %}
+        </div>
+        <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=achievement.player.id %}" class="text-gray-500 hover:underline">{{ achievement.player.name }}</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
 </div>
 {% endblock %}

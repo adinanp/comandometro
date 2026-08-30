@@ -9,4 +9,5 @@ class GameDetailUseCase(BaseUseCase):
             .prefetch_related("deck__commanders")
             .order_by("placement")
         )
-        return {"participants": list(participants)}
+        achievements = game.achievements.select_related("player").order_by("id")
+        return {"participants": list(participants), "achievements": list(achievements)}

@@ -3,16 +3,12 @@
 {% block content %}
 <div class="space-y-6">
 
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Jogadores</h1>
-      <p class="text-sm text-gray-500">Todos os jogadores do pod.</p>
-    </div>
-    <a
-      href="{% url 'core:player-create' pod_slug=pod.slug %}"
-      class="text-sm font-semibold px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
-      >Novo Jogador</a
-    >
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Jogadores</h1>
+    <p class="text-sm text-gray-500">
+      Todos os jogadores do pod. Pra adicionar alguém, use o link de convite
+      {% if membership.is_owner %}em <a href="{% url 'pod:pod-settings' pod_slug=pod.slug %}" class="underline">Configurações</a>{% else %}com o dono do pod{% endif %}.
+    </p>
   </div>
 
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">

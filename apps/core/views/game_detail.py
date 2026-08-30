@@ -42,4 +42,5 @@ class GameDetailView(PodMemberRequiredMixin, DetailView):
             )
 
         context["rows"] = rows
+        context["achievements"] = data["achievements"]
         return context

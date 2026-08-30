@@ -37,7 +37,7 @@ class DashboardStatsUseCase(BaseUseCase):
 
         top_player = (
             ranked_players[0]
-            if ranked_players and ranked_players[0]["total_games"]
+            if ranked_players and ranked_players[0]["wins"] > 0
             else None
         )
 
@@ -58,10 +58,13 @@ class DashboardStatsUseCase(BaseUseCase):
 
         top_wincon = wincon_modes[0] if wincon_modes else None
 
+        # Exige pelo menos 2 votos pra evitar destacar uma carta MVP marcada
+        # uma única vez como se fosse "a preferida do pod".
         top_mvp_query = (
             participants.filter(mvp_card__isnull=False)
             .values("mvp_card", "mvp_card__name")
             .annotate(count=Count("id"))
+            .filter(count__gte=2)
             .order_by("-count")
             .first()
         )

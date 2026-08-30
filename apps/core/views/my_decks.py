@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.views import View
 from apps.core.models import Deck, Player
 from apps.pods.mixins import PodMemberRequiredMixin
@@ -14,9 +13,8 @@ class MyDecksView(PodMemberRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         player = Player.objects.filter(pod=self.pod, user=request.user).first()
         if player is None:
-            return redirect(
-                reverse("core:player-create", kwargs={"pod_slug": self.pod.slug})
-            )
+            messages.error(request, "Não encontramos seu jogador neste pod.")
+            return redirect("core:dashboard", pod_slug=self.pod.slug)
         decks = Deck.objects.filter(player=player).prefetch_related("commanders")
         return render(
             self.request,

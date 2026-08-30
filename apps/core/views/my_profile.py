@@ -1,6 +1,5 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
-from django.urls import reverse
 from django.views import View
 from apps.core.forms import PlayerForm, PlayerProfileForm
 from apps.core.models import Player, PlayerProfile
@@ -11,7 +10,9 @@ class MyProfileView(PodMemberRequiredMixin, View):
     """
     "Meu Perfil" — edita o Player do usuário logado neste pod (nome,
     apelido) e o PlayerProfile associado (pronomes, cor/wincon favorita).
-    Se o usuário ainda não tiver um Player neste pod, manda pro cadastro.
+    Todo membro ganha um Player automaticamente ao entrar no pod
+    (CreatePodUseCase/JoinPodUseCase); não achar um aqui é um estado que
+    não deveria acontecer.
     """
 
     template_name = "core/my_profile.html"
@@ -19,18 +20,16 @@ class MyProfileView(PodMemberRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         player = self._get_player()
         if player is None:
-            return redirect(
-                reverse("core:player-create", kwargs={"pod_slug": self.pod.slug})
-            )
+            messages.error(request, "Não encontramos seu jogador neste pod.")
+            return redirect("core:dashboard", pod_slug=self.pod.slug)
         profile = self._get_or_build_profile(player)
         return self._render(PlayerForm(instance=player), PlayerProfileForm(instance=profile))
 
     def post(self, request, *args, **kwargs):
         player = self._get_player()
         if player is None:
-            return redirect(
-                reverse("core:player-create", kwargs={"pod_slug": self.pod.slug})
-            )
+            messages.error(request, "Não encontramos seu jogador neste pod.")
+            return redirect("core:dashboard", pod_slug=self.pod.slug)
         profile = self._get_or_build_profile(player)
         player_form = PlayerForm(request.POST, instance=player)
         profile_form = PlayerProfileForm(request.POST, instance=profile)
