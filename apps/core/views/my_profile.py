@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.views import View
-from apps.core.forms import PlayerForm, PlayerProfileForm
+from apps.core.forms import PlayerForm, PlayerProfileForm, UserEmailForm
 from apps.core.models import Player, PlayerProfile
 from apps.pods.mixins import PodMemberRequiredMixin
 
@@ -23,7 +23,11 @@ class MyProfileView(PodMemberRequiredMixin, View):
             messages.error(request, "Não encontramos seu jogador neste pod.")
             return redirect("core:dashboard", pod_slug=self.pod.slug)
         profile = self._get_or_build_profile(player)
-        return self._render(PlayerForm(instance=player), PlayerProfileForm(instance=profile))
+        return self._render(
+            PlayerForm(instance=player),
+            PlayerProfileForm(instance=profile),
+            UserEmailForm(instance=request.user),
+        )
 
     def post(self, request, *args, **kwargs):
         player = self._get_player()
@@ -33,13 +37,15 @@ class MyProfileView(PodMemberRequiredMixin, View):
         profile = self._get_or_build_profile(player)
         player_form = PlayerForm(request.POST, instance=player)
         profile_form = PlayerProfileForm(request.POST, instance=profile)
-        if player_form.is_valid() and profile_form.is_valid():
+        email_form = UserEmailForm(request.POST, instance=request.user)
+        if player_form.is_valid() and profile_form.is_valid() and email_form.is_valid():
             player_form.save()
             profile_form.instance.player = player
             profile_form.save()
+            email_form.save()
             messages.success(request, "Perfil atualizado.")
             return redirect("core:my-profile", pod_slug=self.pod.slug)
-        return self._render(player_form, profile_form)
+        return self._render(player_form, profile_form, email_form)
 
     def _get_player(self):
         return Player.objects.filter(pod=self.pod, user=self.request.user).first()
@@ -49,7 +55,7 @@ class MyProfileView(PodMemberRequiredMixin, View):
             player=player
         )
 
-    def _render(self, player_form, profile_form):
+    def _render(self, player_form, profile_form, email_form):
         return render(
             self.request,
             self.template_name,
@@ -58,5 +64,6 @@ class MyProfileView(PodMemberRequiredMixin, View):
                 "membership": self.membership,
                 "player_form": player_form,
                 "profile_form": profile_form,
+                "email_form": email_form,
             },
         )

@@ -1,5 +1,8 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from apps.core.models import Player, PlayerProfile, PronounChoices
+
+User = get_user_model()
 
 
 class PlayerForm(forms.ModelForm):
@@ -35,3 +38,19 @@ class PlayerProfileForm(forms.ModelForm):
         self.fields["pronouns"].choices = [("", "Prefiro não dizer")] + list(
             PronounChoices.choices
         )
+
+
+class UserEmailForm(forms.ModelForm):
+    """
+    Login é por username, não por e-mail — este campo é só uma forma
+    opcional de a pessoa deixar um contato registrado, editável em "Meu
+    Perfil". Sem verificação de endereço.
+    """
+
+    class Meta:
+        model = User
+        fields = ["email"]
+        labels = {"email": "E-mail"}
+        widgets = {
+            "email": forms.EmailInput(attrs={"class": "form-input"}),
+        }

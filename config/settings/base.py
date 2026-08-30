@@ -88,10 +88,13 @@ SITE_ID = 1
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/pods/"
 
-# Login só por e-mail/senha ou Google — sem username, sem verificação de
-# e-mail por enquanto (não há backend de e-mail configurado no projeto).
-ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+# Login por username/senha ou Google — não por e-mail. Sem backend de
+# e-mail configurado no projeto (não dá pra confirmar endereço nem
+# recuperar senha por e-mail), e pedir e-mail no cadastro só gera receio
+# sem necessidade; quem quiser informar um e-mail faz isso depois, opcionalmente,
+# em "Meu Perfil".
+ACCOUNT_LOGIN_METHODS = {"username"}
+ACCOUNT_SIGNUP_FIELDS = ["username*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_RATE_LIMITS = {
     "login_failed": "5/5m",

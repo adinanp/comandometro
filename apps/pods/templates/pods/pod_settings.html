@@ -45,11 +45,11 @@
       {% for m in members %}
       <div class="p-4 flex items-center justify-between text-sm">
         <div>
-          <span class="font-medium text-gray-900">{{ m.user.get_full_name|default:m.user.email }}</span>
+          <span class="font-medium text-gray-900">{{ m.user.get_full_name|default:m.user.username }}</span>
           <span class="text-xs text-gray-400 ml-2">{{ m.get_role_display }}</span>
         </div>
         {% if not m.is_owner %}
-        <form method="post" onsubmit="return confirm('Remover {{ m.user.get_full_name|default:m.user.email }} do pod?');">
+        <form method="post" onsubmit="return confirm('Remover {{ m.user.get_full_name|default:m.user.username }} do pod?');">
           {% csrf_token %}
           <input type="hidden" name="action" value="remove_member" />
           <input type="hidden" name="membership_id" value="{{ m.id }}" />
