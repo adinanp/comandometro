@@ -5,7 +5,7 @@ class Card(models.Model):
     name = models.CharField(max_length=255, unique=True)
     color_identity = models.CharField(max_length=10, blank=True)
     mana_value = models.PositiveIntegerField(
-        default=0, help_text="Valor de mana convertido (CMC)"
+        default=0, blank=True, help_text="Valor de mana convertido (CMC)"
     )
     is_commander_eligible = models.BooleanField(default=False)
     can_have_partner = models.BooleanField(
