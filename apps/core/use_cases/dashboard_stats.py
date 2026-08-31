@@ -109,7 +109,7 @@ class DashboardStatsUseCase(BaseUseCase):
 
     def _wincon_specialists(self, pod, since):
         """
-        "Maior combeiro/agressor/comandeiro" — de quem mais vence com cada
+        "Maior Combeiro/Agressor" e "Rei do Voltron" — de quem mais vence com cada
         wincon específica, cruzando vitórias (placement=1) com a wincon da
         partida. Só usa as wincons pré-definidas (combo/combate/dano de
         comandante), não as customizadas — são as três com nome e ícone
@@ -119,7 +119,7 @@ class DashboardStatsUseCase(BaseUseCase):
         categories = [
             ("combeiro", "🎲", "Maior Combeiro", WinConditionChoices.COMBO),
             ("agressor", "⚔️", "Maior Agressor", WinConditionChoices.COMBAT),
-            ("comandeiro", "👑", "Maior Comandeiro", WinConditionChoices.COMMANDER_DAMAGE),
+            ("comandeiro", "👑", "Rei do Voltron", WinConditionChoices.COMMANDER_DAMAGE),
         ]
         specialists = []
         for key, icon, label, win_condition in categories:
