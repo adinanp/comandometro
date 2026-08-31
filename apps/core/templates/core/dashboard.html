@@ -276,7 +276,7 @@
             {% for row in color_identity_stats %}
             <div class="p-4 flex items-center justify-between text-sm">
               <span class="font-medium text-gray-700">{{ row.identity }}</span>
-              <span class="text-gray-500">{{ row.games }} jogos</span>
+              <span class="text-gray-500">{{ row.games }} aparições</span>
               <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
             </div>
             {% empty %}
@@ -288,7 +288,7 @@
             {% for row in color_count_stats %}
             <div class="p-4 flex items-center justify-between text-sm">
               <span class="font-medium text-gray-700">{{ row.colors }} cor(es)</span>
-              <span class="text-gray-500">{{ row.games }} jogos</span>
+              <span class="text-gray-500">{{ row.games }} aparições</span>
               <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
             </div>
             {% endfor %}
@@ -306,7 +306,7 @@
           {% for row in seat_stats %}
           <div class="p-4 flex items-center justify-between text-sm">
             <span class="font-medium text-gray-700">Posição {{ row.seat }}</span>
-            <span class="text-gray-500">{{ row.games }} jogos</span>
+            <span class="text-gray-500">{{ row.games }} aparições</span>
             <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
           </div>
           {% empty %}
@@ -318,14 +318,14 @@
       <!-- Top comandantes qualificados -->
       <details class="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <summary class="p-4 bg-gray-50/50 flex items-center justify-between cursor-pointer list-none select-none">
-          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">TOP COMANDANTES (≥5 jogos, ≥20% WR)</h3>
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">TOP COMANDANTES (≥5 aparições, ≥20% WR)</h3>
           <span class="text-gray-400 transition-transform group-open:rotate-180">▾</span>
         </summary>
         <div class="divide-y divide-gray-100 border-t border-gray-100">
           {% for row in top_commanders_qualified %}
           <div class="p-4 flex items-center justify-between text-sm">
             <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=row.deck.id %}" class="font-medium text-gray-700 hover:underline">{{ row.deck.display_commanders }}</a>
-            <span class="text-gray-500">{{ row.games }} jogos</span>
+            <span class="text-gray-500">{{ row.games }} aparições</span>
             <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
           </div>
           {% empty %}
