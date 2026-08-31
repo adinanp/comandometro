@@ -11,6 +11,7 @@ from .deck_detail import DeckDetailView
 from .deck_create import DeckCreateView
 from .deck_create_ajax import DeckCreateAjaxView
 from .deck_list import DeckListView
+from .deck_decklist import DeckDecklistView
 
 __all__ = [
     "DashboardView",
@@ -27,4 +28,5 @@ __all__ = [
     "DeckCreateView",
     "DeckCreateAjaxView",
     "DeckListView",
+    "DeckDecklistView",
 ]

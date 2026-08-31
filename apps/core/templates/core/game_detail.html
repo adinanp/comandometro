@@ -47,10 +47,18 @@
             <td class="p-4">
               <div class="flex items-center gap-1 text-gray-700">
                 {% for card, image_url in row.commander_images %}
+                {% if row.participant.deck %}
+                <a
+                  href="{% url 'core:deck-decklist' pod_slug=pod.slug pk=row.participant.deck.id %}"
+                  class="hover:underline decoration-dotted{% if image_url %} cursor-zoom-in{% endif %}"
+                  {% if image_url %}data-card-image="{{ image_url }}"{% endif %}
+                >{{ card.name }}</a>{% if not forloop.last %} /{% endif %}
+                {% else %}
                 <span
                   class="{% if image_url %}hover:underline decoration-dotted cursor-zoom-in{% endif %}"
                   {% if image_url %}data-card-image="{{ image_url }}"{% endif %}
                 >{{ card.name }}</span>{% if not forloop.last %} /{% endif %}
+                {% endif %}
                 {% endfor %}
               </div>
             </td>

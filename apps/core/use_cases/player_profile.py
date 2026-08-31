@@ -1,9 +1,11 @@
 from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 
-from apps.core.models import Deck, Player
+from apps.core.models import Deck, Player, wincon_label
 from apps.core.use_cases.base import BaseUseCase
 from apps.core.use_cases.pod_insights import POINTS_BY_PLACEMENT
+
+WUBRG_ORDER = "WUBRG"
 
 
 class PlayerProfileUseCase(BaseUseCase):
@@ -68,7 +70,45 @@ class PlayerProfileUseCase(BaseUseCase):
             "commander_stats": commander_stats,
             "records": records,
             "win_rate_trend": self._win_rate_trend(performances),
+            "favorite_commander": self._favorite_commander(commander_stats),
+            "favorite_wincon": self._favorite_wincon(performances),
+            "player_color_identity": self._player_color_identity(player),
         }
+
+    def _favorite_commander(self, commander_stats):
+        """Deck com mais aparições — não é por carta, pra ficar coerente com
+        TOP COMANDANTES do dashboard, que também agrupa por deck."""
+        played = [row for row in commander_stats if row["games"] > 0]
+        return max(played, key=lambda row: row["games"]) if played else None
+
+    def _favorite_wincon(self, performances):
+        """Wincon mais comum entre as partidas em que esse jogador ficou em
+        1º lugar."""
+        top = (
+            performances.filter(placement=1)
+            .values("game__win_condition")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+            .first()
+        )
+        if not top:
+            return None
+        return {"label": wincon_label(top["game__win_condition"]), "count": top["count"]}
+
+    def _player_color_identity(self, player):
+        """
+        União das cores de todos os decks que esse jogador já usou em
+        partidas (não decks nunca jogados) — não é "por partida", é uma
+        identidade agregada de quais cores esse jogador costuma pilotar.
+        """
+        decks = Deck.objects.filter(player=player).annotate(
+            games=Count("match_performances")
+        ).filter(games__gt=0)
+        colors = set()
+        for identity in decks.values_list("color_identity", flat=True):
+            colors.update(identity or "")
+        combined = "".join(c for c in WUBRG_ORDER if c in colors)
+        return combined or "C"
 
     def _win_rate_trend(self, performances):
         monthly = (

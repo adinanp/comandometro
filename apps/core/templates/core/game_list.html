@@ -16,6 +16,12 @@
         Filtrando por posição inicial: <strong class="text-gray-900">{{ active_seat }}</strong>
         — <a href="{% url 'core:game-list' pod_slug=pod.slug %}" class="underline hover:text-gray-900">limpar filtro</a>
       </p>
+      {% elif active_player %}
+      <p class="text-sm text-gray-500">
+        Filtrando por {% if active_won %}vitórias de{% else %}partidas de{% endif %}
+        <strong class="text-gray-900">{{ active_player.name }}</strong>
+        — <a href="{% url 'core:game-list' pod_slug=pod.slug %}" class="underline hover:text-gray-900">limpar filtro</a>
+      </p>
       {% else %}
       <p class="text-sm text-gray-500">Histórico completo, mais recente primeiro.</p>
       {% endif %}
@@ -62,11 +68,11 @@
   {% if is_paginated %}
   <div class="flex justify-center gap-4 text-sm">
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}{% if active_wincon %}&wincon={{ active_wincon|urlencode }}{% endif %}{% if active_seat %}&seat={{ active_seat }}{% endif %}" class="text-gray-600 hover:text-gray-900">« Anterior</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% if active_wincon %}&wincon={{ active_wincon|urlencode }}{% endif %}{% if active_seat %}&seat={{ active_seat }}{% endif %}{% if active_player %}&player={{ active_player.id }}{% if active_won %}&won=1{% endif %}{% endif %}" class="text-gray-600 hover:text-gray-900">« Anterior</a>
     {% endif %}
     <span class="text-gray-400">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% if active_wincon %}&wincon={{ active_wincon|urlencode }}{% endif %}{% if active_seat %}&seat={{ active_seat }}{% endif %}" class="text-gray-600 hover:text-gray-900">Próxima »</a>
+    <a href="?page={{ page_obj.next_page_number }}{% if active_wincon %}&wincon={{ active_wincon|urlencode }}{% endif %}{% if active_seat %}&seat={{ active_seat }}{% endif %}{% if active_player %}&player={{ active_player.id }}{% if active_won %}&won=1{% endif %}{% endif %}" class="text-gray-600 hover:text-gray-900">Próxima »</a>
     {% endif %}
   </div>
   {% endif %}

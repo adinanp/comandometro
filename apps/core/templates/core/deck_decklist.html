@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <button type="button" onclick="history.back()" class="text-sm text-gray-500 hover:text-gray-900 transition">
+    ← Voltar
+  </button>
+
+  <div>
+    <p class="text-xs font-bold uppercase tracking-wider text-gray-400">Deck de {{ deck.player.name }}</p>
+    <h1 class="text-2xl font-bold text-gray-900 mt-1">{{ deck.display_commanders|default:"Sem comandante" }}</h1>
+    <p class="text-sm text-gray-500 mt-1">
+      <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=deck.id %}" class="underline hover:text-gray-900">Ver estatísticas do deck</a>
+    </p>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+    <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">
+      COMANDANTE{% if commander_images|length > 1 %}S{% endif %} ({{ commander_images|length }})
+    </h2>
+    <div class="flex flex-wrap gap-6">
+      {% for card, image_url in commander_images %}
+      <div class="w-48">
+        {% if image_url %}
+        <img src="{{ image_url }}" alt="{{ card.name }}" class="w-full h-auto rounded-lg border border-gray-200 shadow-sm" />
+        {% else %}
+        <div class="w-full aspect-[5/7] rounded-lg border border-gray-200 bg-gray-100 flex items-center justify-center text-center p-3">
+          <span class="text-xs text-gray-400">{{ card.name }}</span>
+        </div>
+        {% endif %}
+        <p class="text-sm font-semibold text-gray-900 mt-2 text-center">{{ card.name }}</p>
+      </div>
+      {% empty %}
+      <p class="text-sm text-gray-400">Nenhum comandante definido pra esse deck ainda.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-8 text-center">
+    <p class="text-2xl mb-2">📋</p>
+    <p class="text-sm font-semibold text-gray-700">Cadastro de decklist em breve</p>
+    <p class="text-xs text-gray-500 mt-1">
+      Por enquanto só o(s) comandante(s) fica(m) registrado(s) por aqui. A lista completa de 99 cartas
+      (criaturas, mágicas, terrenos etc.) ainda não tem cadastro no sistema.
+    </p>
+  </div>
+
+</div>
+{% endblock %}

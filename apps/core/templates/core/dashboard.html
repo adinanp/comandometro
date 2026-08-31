@@ -167,9 +167,9 @@
               <p class="text-xs text-gray-400">{{ player.total_games }} partidas ({{ player.win_rate }}% WR)</p>
             </div>
           </div>
-          <span class="px-2.5 py-1 text-xs font-semibold bg-white border border-gray-200 rounded-md text-gray-700 shadow-2xs">
+          <a href="{% url 'core:game-list' pod_slug=pod.slug %}?player={{ player.id }}&won=1" class="px-2.5 py-1 text-xs font-semibold bg-white border border-gray-200 rounded-md text-gray-700 shadow-2xs hover:border-gray-400 transition">
             {{ player.wins }} vitórias
-          </span>
+          </a>
         </div>
         {% endif %}
         {% endfor %}
