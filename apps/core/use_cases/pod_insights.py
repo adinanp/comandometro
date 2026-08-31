@@ -10,7 +10,7 @@ POINTS_BY_PLACEMENT = {1: 4, 2: 2, 3: 1}
 class PodInsightsUseCase(BaseUseCase):
     def perform_request(self, pod, since=None) -> dict:
         return {
-            "color_identity_stats": self._color_identity_stats(pod, since),
+            "color_identity_stats": self._color_identity_combo_stats(pod, since),
             "color_count_stats": self._color_count_stats(pod, since),
             "wincon_trend": self._wincon_trend(pod, since),
             "points_ranking": self._points_ranking(pod, since),
@@ -18,21 +18,39 @@ class PodInsightsUseCase(BaseUseCase):
             "seat_stats": self._seat_stats(pod, since),
         }
 
-    def _color_identity_stats(self, pod, since):
-        stats = []
-        for color in "WUBRG":
-            decks_with_color = Deck.objects.filter(
-                color_identity__contains=color, player__pod=pod
-            )
-            performances = GameParticipant.objects.filter(deck__in=decks_with_color)
+    def _color_identity_combo_stats(self, pod, since):
+        """
+        Win rate agrupado pela combinação exata de cores do deck (ex:
+        "WUR", "UBG"), não por cor isolada — cada participação cai em um
+        único grupo, então (ao contrário de contar por cor individual) um
+        deck de 5 cores não infla 5 contadores ao mesmo tempo.
+        """
+        buckets = {}
+        for deck in Deck.objects.filter(player__pod=pod):
+            performances = deck.match_performances.all()
             if since:
                 performances = performances.filter(game__date__gte=since)
             games = performances.count()
+            if games == 0:
+                continue
             wins = performances.filter(placement=1).count()
-            win_rate = round((wins / games * 100), 1) if games else 0
+            identity = deck.color_identity or "C"
+            bucket = buckets.setdefault(identity, {"games": 0, "wins": 0})
+            bucket["games"] += games
+            bucket["wins"] += wins
+
+        stats = []
+        for identity, totals in buckets.items():
+            win_rate = round((totals["wins"] / totals["games"] * 100), 1)
             stats.append(
-                {"color": color, "games": games, "wins": wins, "win_rate": win_rate}
+                {
+                    "identity": identity,
+                    "games": totals["games"],
+                    "wins": totals["wins"],
+                    "win_rate": win_rate,
+                }
             )
+        stats.sort(key=lambda row: -row["games"])
         return stats
 
     def _color_count_stats(self, pod, since):

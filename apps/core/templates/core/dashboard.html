@@ -272,13 +272,15 @@
         </summary>
         <div class="grid grid-cols-1 lg:grid-cols-2 border-t border-gray-100">
           <div class="divide-y divide-gray-100 lg:border-r border-gray-100">
-            <div class="p-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Por cor individual</div>
+            <div class="p-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Por color identity</div>
             {% for row in color_identity_stats %}
             <div class="p-4 flex items-center justify-between text-sm">
-              <span class="font-medium text-gray-700">{{ row.color }}</span>
+              <span class="font-medium text-gray-700">{{ row.identity }}</span>
               <span class="text-gray-500">{{ row.games }} jogos</span>
               <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
             </div>
+            {% empty %}
+            <div class="p-4 text-center text-xs text-gray-400">Nenhum deck com partidas registradas ainda.</div>
             {% endfor %}
           </div>
           <div class="divide-y divide-gray-100">
