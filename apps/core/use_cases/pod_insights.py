@@ -11,7 +11,6 @@ class PodInsightsUseCase(BaseUseCase):
     def perform_request(self, pod, since=None) -> dict:
         return {
             "color_identity_stats": self._color_identity_combo_stats(pod, since),
-            "color_count_stats": self._color_count_stats(pod, since),
             "wincon_trend": self._wincon_trend(pod, since),
             "points_ranking": self._points_ranking(pod, since),
             "top_commanders_qualified": self._top_commanders_qualified(pod, since),
@@ -20,10 +19,11 @@ class PodInsightsUseCase(BaseUseCase):
 
     def _color_identity_combo_stats(self, pod, since):
         """
-        Win rate agrupado pela combinação exata de cores do deck (ex:
+        Top 5 win rate agrupado pela combinação exata de cores do deck (ex:
         "WUR", "UBG"), não por cor isolada — cada participação cai em um
-        único grupo, então (ao contrário de contar por cor individual) um
-        deck de 5 cores não infla 5 contadores ao mesmo tempo.
+        único grupo, então um deck de 5 cores não infla 5 contadores ao
+        mesmo tempo. Mono-color (ex: "W" sozinho) e colorless ("C") também
+        são combinações válidas aqui, não um caso à parte.
         """
         buckets = {}
         for deck in Deck.objects.filter(player__pod=pod):
@@ -50,37 +50,13 @@ class PodInsightsUseCase(BaseUseCase):
                     "win_rate": win_rate,
                 }
             )
-        stats.sort(key=lambda row: -row["games"])
-        return stats
+        stats.sort(key=lambda row: (-row["win_rate"], -row["games"]))
+        return self._pad(stats[:5], 5)
 
-    def _color_count_stats(self, pod, since):
-        buckets = {n: {"games": 0, "wins": 0} for n in range(6)}
-        for deck in Deck.objects.filter(player__pod=pod):
-            performances = deck.match_performances.all()
-            if since:
-                performances = performances.filter(game__date__gte=since)
-            games = performances.count()
-            wins = performances.filter(placement=1).count()
-            num_colors = (
-                0 if deck.color_identity in ("", "C") else len(deck.color_identity)
-            )
-            buckets[num_colors]["games"] += games
-            buckets[num_colors]["wins"] += wins
-
-        stats = []
-        for num_colors, totals in sorted(buckets.items()):
-            games = totals["games"]
-            wins = totals["wins"]
-            win_rate = round((wins / games * 100), 1) if games else 0
-            stats.append(
-                {
-                    "colors": num_colors,
-                    "games": games,
-                    "wins": wins,
-                    "win_rate": win_rate,
-                }
-            )
-        return stats
+    def _pad(self, rows, size):
+        """Completa com linhas vazias (`{"empty": True}`) até `size` — ver
+        DashboardStatsUseCase._pad, mesmo padrão de altura fixa nos TOP 5."""
+        return rows + [{"empty": True}] * (size - len(rows))
 
     def _wincon_trend(self, pod, since):
         games = Game.objects.filter(pod=pod).exclude(date__isnull=True)

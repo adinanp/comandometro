@@ -264,35 +264,32 @@
         </div>
       </details>
 
-      <!-- Win rate por cor -->
+      <!-- Top 5 win rate por color identity -->
       <details class="group bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <summary class="p-4 bg-gray-50/50 flex items-center justify-between cursor-pointer list-none select-none">
-          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">WIN RATE POR COR</h3>
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">
+            TOP 5 WIN RATE POR COLOR IDENTITY
+            <span
+              title="Agrupado pela combinação exata de cores do deck (não por cor isolada) — mono-color e colorless também contam como uma color identity própria. Mostra quais cores vêm ganhando mais no pod."
+              class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold normal-case cursor-help"
+            >?</span>
+          </h3>
           <span class="text-gray-400 transition-transform group-open:rotate-180">▾</span>
         </summary>
-        <div class="grid grid-cols-1 lg:grid-cols-2 border-t border-gray-100">
-          <div class="divide-y divide-gray-100 lg:border-r border-gray-100">
-            <div class="p-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Por color identity</div>
-            {% for row in color_identity_stats %}
-            <div class="p-4 flex items-center justify-between text-sm">
-              <span class="font-medium text-gray-700">{{ row.identity }}</span>
-              <span class="text-gray-500">{{ row.games }} aparições</span>
-              <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
-            </div>
-            {% empty %}
-            <div class="p-4 text-center text-xs text-gray-400">Nenhum deck com partidas registradas ainda.</div>
-            {% endfor %}
+        <div class="divide-y divide-gray-100 border-t border-gray-100">
+          {% for row in color_identity_stats %}
+          <div class="p-4 flex items-center justify-between text-sm">
+            {% if row.empty %}
+            <span class="text-gray-300">—</span>
+            {% else %}
+            <span class="flex items-center gap-1 text-base">
+              {% for c in row.identity %}<i class="ms ms-{{ c|lower }} ms-cost"></i>{% endfor %}
+            </span>
+            <span class="text-gray-500">{{ row.games }} aparições</span>
+            <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
+            {% endif %}
           </div>
-          <div class="divide-y divide-gray-100">
-            <div class="p-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Por nº de cores no deck</div>
-            {% for row in color_count_stats %}
-            <div class="p-4 flex items-center justify-between text-sm">
-              <span class="font-medium text-gray-700">{{ row.colors }} cor(es)</span>
-              <span class="text-gray-500">{{ row.games }} aparições</span>
-              <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
-            </div>
-            {% endfor %}
-          </div>
+          {% endfor %}
         </div>
       </details>
 
