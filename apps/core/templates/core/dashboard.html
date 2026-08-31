@@ -224,7 +224,7 @@
 
     <div data-metric-panel="especialistas" class="space-y-3">
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {% for specialist in wincon_specialists %}
         <div class="p-4 bg-white border border-gray-200 rounded-xl">
           <span class="text-[11px] font-bold text-gray-500 tracking-wider uppercase flex items-center gap-1">
@@ -238,6 +238,21 @@
           <p class="text-xs text-gray-400 font-medium mt-1">{{ specialist.wins }} vitórias assim</p>
         </div>
         {% endfor %}
+        <div class="p-4 bg-white border border-gray-200 rounded-xl">
+          <span class="text-[11px] font-bold text-gray-500 tracking-wider uppercase flex items-center gap-1">
+            🗡️ MAIOR MATADOR
+            <span
+              title="Soma de eliminações (kills) em todas as partidas — é um campo opcional no cadastro, então o número pode ficar incompleto se algumas partidas não tiverem essa contagem preenchida."
+              class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold normal-case cursor-help"
+            >?</span>
+          </span>
+          <p class="text-xl font-bold text-gray-900 mt-2 truncate">
+            {% if biggest_killer %}
+            <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=biggest_killer.player_id %}" class="hover:underline">{{ biggest_killer.player_name }}</a>
+            {% else %}-{% endif %}
+          </p>
+          <p class="text-xs text-gray-400 font-medium mt-1">{% if biggest_killer %}{{ biggest_killer.kills }} eliminações{% else %}Nenhuma eliminação registrada{% endif %}</p>
+        </div>
       </div>
 
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">

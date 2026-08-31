@@ -1,4 +1,4 @@
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Sum
 from apps.core.models import (
     Achievement,
     Game,
@@ -97,6 +97,7 @@ class DashboardStatsUseCase(BaseUseCase):
             "wincon_modes": self._pad(wincon_modes[:5], 5),
             "achievements": achievements,
             "wincon_specialists": self._wincon_specialists(pod, since),
+            "biggest_killer": self._biggest_killer(pod, since),
         }
 
     def _pad(self, rows, size):
@@ -146,3 +147,27 @@ class DashboardStatsUseCase(BaseUseCase):
                 }
             )
         return specialists
+
+    def _biggest_killer(self, pod, since):
+        """
+        "Maior Matador" — quem mais eliminou outros jogadores no total,
+        somando `kill_count` de todas as partidas. Assim como duração
+        média, é opcional/impreciso (depende de quem lembra de preencher),
+        mas divertido de acompanhar.
+        """
+        performances = GameParticipant.objects.filter(game__pod=pod)
+        if since:
+            performances = performances.filter(game__date__gte=since)
+        top = (
+            performances.values("player_id", "player__name")
+            .annotate(total_kills=Sum("kill_count"))
+            .order_by("-total_kills")
+            .first()
+        )
+        if not top or not top["total_kills"]:
+            return None
+        return {
+            "player_id": top["player_id"],
+            "player_name": top["player__name"],
+            "kills": top["total_kills"],
+        }
