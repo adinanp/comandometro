@@ -1,4 +1,4 @@
-from django.db.models import Avg, Count, Sum
+from django.db.models import Avg, Count, F, Max, Sum
 from apps.core.models import (
     Achievement,
     Game,
@@ -116,7 +116,8 @@ class DashboardStatsUseCase(BaseUseCase):
         partida. Só usa as wincons pré-definidas (combo/combate/dano de
         comandante), não as customizadas — são as três com nome e ícone
         fixo na tela; uma wincon nova digitada pelo usuário não vira
-        automaticamente uma quarta categoria aqui.
+        automaticamente uma quarta categoria aqui. Empate em número de
+        vitórias é desempatado pela vitória mais recente.
         """
         categories = [
             ("combeiro", "🎲", "Maior Combeiro", WinConditionChoices.COMBO),
@@ -132,8 +133,8 @@ class DashboardStatsUseCase(BaseUseCase):
                 wins = wins.filter(game__date__gte=since)
             top = (
                 wins.values("player_id", "player__name")
-                .annotate(count=Count("id"))
-                .order_by("-count")
+                .annotate(count=Count("id"), last_win=Max("game__date"))
+                .order_by("-count", F("last_win").desc(nulls_last=True))
                 .first()
             )
             specialists.append(
@@ -153,15 +154,16 @@ class DashboardStatsUseCase(BaseUseCase):
         "Maior Matador" — quem mais eliminou outros jogadores no total,
         somando `kill_count` de todas as partidas. Assim como duração
         média, é opcional/impreciso (depende de quem lembra de preencher),
-        mas divertido de acompanhar.
+        mas divertido de acompanhar. Empate no total é desempatado pela
+        partida mais recente em que o jogador participou.
         """
         performances = GameParticipant.objects.filter(game__pod=pod)
         if since:
             performances = performances.filter(game__date__gte=since)
         top = (
             performances.values("player_id", "player__name")
-            .annotate(total_kills=Sum("kill_count"))
-            .order_by("-total_kills")
+            .annotate(total_kills=Sum("kill_count"), last_game=Max("game__date"))
+            .order_by("-total_kills", F("last_game").desc(nulls_last=True))
             .first()
         )
         if not top or not top["total_kills"]:
