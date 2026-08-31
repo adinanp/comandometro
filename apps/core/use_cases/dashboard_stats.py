@@ -61,6 +61,7 @@ class DashboardStatsUseCase(BaseUseCase):
             wincon_modes.append(
                 {
                     "name": wincon_label(wc["win_condition"]),
+                    "value": wc["win_condition"],
                     "count": wc["count"],
                     "percentage": pct,
                 }

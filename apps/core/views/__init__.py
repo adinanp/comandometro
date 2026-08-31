@@ -10,6 +10,7 @@ from .game_update import GameUpdateView
 from .deck_detail import DeckDetailView
 from .deck_create import DeckCreateView
 from .deck_create_ajax import DeckCreateAjaxView
+from .deck_list import DeckListView
 
 __all__ = [
     "DashboardView",
@@ -25,4 +26,5 @@ __all__ = [
     "DeckDetailView",
     "DeckCreateView",
     "DeckCreateAjaxView",
+    "DeckListView",
 ]

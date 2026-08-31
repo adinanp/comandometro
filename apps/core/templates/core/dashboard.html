@@ -40,7 +40,11 @@
     </div>
 
     <!-- Card Maior Wincon -->
+    {% if top_wincon %}
+    <a href="{% url 'core:game-list' pod_slug=pod.slug %}?wincon={{ top_wincon.value|urlencode }}" class="block p-4 bg-indigo-50/30 border border-indigo-100 rounded-xl hover:border-indigo-300 transition">
+    {% else %}
     <div class="p-4 bg-indigo-50/30 border border-indigo-100 rounded-xl">
+    {% endif %}
       <span class="text-[11px] font-bold text-indigo-600 tracking-wider uppercase flex items-center gap-1">
         ⚡ MAIOR WINCON
       </span>
@@ -50,7 +54,7 @@
       <p class="text-xs text-indigo-600 font-medium mt-1">
         {{ top_wincon.count|default:0 }} jogos ({{ top_wincon.percentage|default:0 }}% do total)
       </p>
-    </div>
+    {% if top_wincon %}</a>{% else %}</div>{% endif %}
 
     <!-- Card Carta MVP -->
     <div class="p-4 bg-white border border-gray-200 rounded-xl flex items-center gap-3">
@@ -97,7 +101,7 @@
   </div>
 
   <!-- Grid Principal (Wincon Modes | Ranking lado a lado, Achievements embaixo) -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
     <!-- Wincon Modes -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -116,17 +120,19 @@
           </div>
         </div>
         {% for mode in wincon_modes %}
+        {% if mode.empty %}
         <div class="p-4 flex items-center justify-between text-sm">
-          {% if mode.empty %}
           <span class="text-gray-300">—</span>
-          {% else %}
+        </div>
+        {% else %}
+        <a href="{% url 'core:game-list' pod_slug=pod.slug %}?wincon={{ mode.value|urlencode }}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
           <span class="font-medium text-gray-700">{{ mode.name }}</span>
           <div class="flex items-center gap-8">
             <span class="text-gray-500">{{ mode.count }}</span>
             <span class="font-bold text-gray-900 w-12 text-right">{{ mode.percentage }}%</span>
           </div>
-          {% endif %}
-        </div>
+        </a>
+        {% endif %}
         {% endfor %}
       </div>
     </div>
@@ -246,17 +252,19 @@
         </div>
         <div class="divide-y divide-gray-100">
           {% for row in color_identity_stats %}
+          {% if row.empty %}
           <div class="p-4 flex items-center justify-between text-sm">
-            {% if row.empty %}
             <span class="text-gray-300">—</span>
-            {% else %}
+          </div>
+          {% else %}
+          <a href="{% url 'core:deck-list' pod_slug=pod.slug %}?color_identity={{ row.identity }}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
             <span class="flex items-center gap-1 text-base">
               {% for c in row.identity %}<i class="ms ms-{{ c|lower }} ms-cost"></i>{% endfor %}
             </span>
             <span class="text-gray-500">{{ row.games }} aparições</span>
             <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
-            {% endif %}
-          </div>
+          </a>
+          {% endif %}
           {% endfor %}
         </div>
       </div>
@@ -293,11 +301,11 @@
         </div>
         <div class="divide-y divide-gray-100">
           {% for row in seat_stats %}
-          <div class="p-4 flex items-center justify-between text-sm">
+          <a href="{% url 'core:game-list' pod_slug=pod.slug %}?seat={{ row.seat }}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
             <span class="font-medium text-gray-700">Posição {{ row.seat }}</span>
             <span class="text-gray-500">{{ row.games }} aparições</span>
             <span class="font-bold text-gray-900">{{ row.win_rate }}%</span>
-          </div>
+          </a>
           {% empty %}
           <div class="p-4 text-center text-xs text-gray-400">Nenhuma partida com posição inicial registrada ainda.</div>
           {% endfor %}

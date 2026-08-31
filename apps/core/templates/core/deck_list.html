@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Decks</h1>
+    {% if active_color_identity %}
+    <p class="text-sm text-gray-500 flex items-center gap-1.5">
+      Filtrando por color identity:
+      <span class="flex items-center gap-0.5 text-base">
+        {% for c in active_color_identity %}<i class="ms ms-{{ c|lower }} ms-cost"></i>{% endfor %}
+      </span>
+      — <a href="{% url 'core:deck-list' pod_slug=pod.slug %}" class="underline hover:text-gray-900">limpar filtro</a>
+    </p>
+    {% else %}
+    <p class="text-sm text-gray-500">Todos os decks cadastrados no pod.</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="divide-y divide-gray-100">
+      {% for deck in decks %}
+      <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=deck.id %}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
+        <div class="min-w-0">
+          <p class="font-semibold text-gray-900 truncate">{{ deck.display_commanders|default:"Sem comandante" }}</p>
+          <p class="text-xs text-gray-400">{{ deck.player.nickname|default:deck.player.name }}</p>
+        </div>
+        <span class="flex items-center gap-1 text-base shrink-0">
+          {% for c in deck.color_identity %}<i class="ms ms-{{ c|lower }} ms-cost"></i>{% empty %}<i class="ms ms-c ms-cost"></i>{% endfor %}
+        </span>
+      </a>
+      {% empty %}
+      <div class="p-6 text-center text-xs text-gray-400">Nenhum deck encontrado.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
