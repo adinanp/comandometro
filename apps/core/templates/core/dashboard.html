@@ -85,26 +85,14 @@
       </div>
       <div class="h-8 w-px bg-gray-200"></div>
       <div>
-        <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase flex items-center justify-center gap-1">
-          MÉDIA DE DURAÇÃO
-          <span
-            title="Média de turnos até o fim da partida — calculada só sobre partidas com contagem de turnos preenchida. Como esse campo é opcional, o número pode ficar impreciso se partidas (ex: presenciais) forem registradas sem essa informação."
-            class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold normal-case cursor-help"
-          >?</span>
-        </span>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">MÉDIA DE DURAÇÃO</span>
         <p class="text-2xl font-bold text-gray-900 mt-1">
           {% if avg_turn_count %}{{ avg_turn_count }}{% else %}-{% endif %}
         </p>
       </div>
       <div class="h-8 w-px bg-gray-200"></div>
       <div>
-        <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase flex items-center justify-center gap-1">
-          MAIS RÁPIDA
-          <span
-            title="Menor contagem de turnos entre as partidas com esse campo preenchido — também opcional, então uma partida presencial sem essa contagem não entra na conta."
-            class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold normal-case cursor-help"
-          >?</span>
-        </span>
+        <span class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">MAIS RÁPIDA</span>
         <p class="text-2xl font-bold text-gray-900 mt-1">
           {% if fastest_game %}
           <a href="{% url 'core:game-detail' pod_slug=pod.slug pk=fastest_game.id %}" class="hover:underline">{{ fastest_game.turn_count }}</a>
