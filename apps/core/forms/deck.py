@@ -44,7 +44,28 @@ class DeckForm(forms.ModelForm):
         ]
         if commanders:
             Deck.validate_commanders(commanders)
+            player = cleaned_data.get("player")
+            if player:
+                self._validate_not_duplicate(player, commanders)
         return cleaned_data
+
+    def _validate_not_duplicate(self, player, commanders):
+        """
+        Um jogador pode ter vários decks, mas nunca dois com exatamente os
+        mesmos comandantes — evita o erro comum de clicar em "+ Criar deck"
+        de novo em vez de escolher o deck já existente no dropdown.
+        """
+        wanted_ids = sorted(c.id for c in commanders)
+        existing = Deck.objects.filter(player=player).prefetch_related("commanders")
+        if self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        for deck in existing:
+            if sorted(deck.commanders.values_list("id", flat=True)) == wanted_ids:
+                names = " / ".join(c.name for c in commanders)
+                raise forms.ValidationError(
+                    f'{player.name} já tem um deck com {names} — '
+                    "selecione o deck existente em vez de criar outro igual."
+                )
 
     def save(self, commit=True):
         deck = super().save(commit=commit)
