@@ -21,10 +21,16 @@ class DashboardStatsUseCase(BaseUseCase):
             participants = participants.filter(game__date__gte=since)
 
         total_games = games.count()
-        avg_turn_count = games.exclude(turn_count__isnull=True).aggregate(
-            avg=Avg("turn_count")
-        )["avg"]
+        games_with_turns = games.exclude(turn_count__isnull=True)
+        avg_turn_count = games_with_turns.aggregate(avg=Avg("turn_count"))["avg"]
         avg_turn_count = round(avg_turn_count, 1) if avg_turn_count is not None else None
+
+        # Empate em turn_count é desempatado pela partida mais recente,
+        # mesmo critério usado nos outros cards do dashboard.
+        fastest = games_with_turns.order_by("turn_count", "-date", "-id").first()
+        fastest_game = (
+            {"id": fastest.id, "turn_count": fastest.turn_count} if fastest else None
+        )
 
         ranked_players = []
         for player in Player.objects.filter(pod=pod):
@@ -90,6 +96,7 @@ class DashboardStatsUseCase(BaseUseCase):
         return {
             "total_games": total_games,
             "avg_turn_count": avg_turn_count,
+            "fastest_game": fastest_game,
             "top_player": top_player,
             "top_wincon": top_wincon,
             "top_mvp": top_mvp,
