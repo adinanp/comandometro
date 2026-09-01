@@ -47,11 +47,13 @@
       <p class="text-xs text-gray-400 font-medium mt-1">{% if favorite_wincon %}{{ favorite_wincon.count }} vitórias assim{% else %}Nenhuma vitória ainda{% endif %}</p>
     </div>
     <div class="p-4 bg-white border border-gray-200 rounded-xl">
-      <span class="text-[11px] font-bold text-gray-500 tracking-wider uppercase">🎨 PLAYER COLOR IDENTITY</span>
+      <span class="text-[11px] font-bold text-gray-500 tracking-wider uppercase">🎨 CORES FAVORITAS</span>
       <p class="mt-2 flex items-center gap-1 text-2xl">
-        {% for c in player_color_identity %}<i class="ms ms-{{ c|lower }} ms-cost"></i>{% endfor %}
+        {% if favorite_color_combo %}
+        {% for c in favorite_color_combo.identity %}<i class="ms ms-{{ c|lower }} ms-cost"></i>{% endfor %}
+        {% else %}-{% endif %}
       </p>
-      <p class="text-xs text-gray-400 font-medium mt-1">Cores de todos os decks já jogados</p>
+      <p class="text-xs text-gray-400 font-medium mt-1">{% if favorite_color_combo %}{{ favorite_color_combo.games }} aparições{% else %}Nenhum deck jogado ainda{% endif %}</p>
     </div>
   </div>
 

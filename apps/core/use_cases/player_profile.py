@@ -1,11 +1,11 @@
-from django.db.models import Count, Q
+from datetime import date
+
+from django.db.models import Count, Max, Q
 from django.db.models.functions import TruncMonth
 
 from apps.core.models import Deck, Player, wincon_label
 from apps.core.use_cases.base import BaseUseCase
 from apps.core.use_cases.pod_insights import POINTS_BY_PLACEMENT
-
-WUBRG_ORDER = "WUBRG"
 
 
 class PlayerProfileUseCase(BaseUseCase):
@@ -72,7 +72,7 @@ class PlayerProfileUseCase(BaseUseCase):
             "win_rate_trend": self._win_rate_trend(performances),
             "favorite_commander": self._favorite_commander(commander_stats),
             "favorite_wincon": self._favorite_wincon(performances),
-            "player_color_identity": self._player_color_identity(player),
+            "favorite_color_combo": self._favorite_color_combo(player),
         }
 
     def _favorite_commander(self, commander_stats):
@@ -95,20 +95,37 @@ class PlayerProfileUseCase(BaseUseCase):
             return None
         return {"label": wincon_label(top["game__win_condition"]), "count": top["count"]}
 
-    def _player_color_identity(self, player):
+    def _favorite_color_combo(self, player):
         """
-        União das cores de todos os decks que esse jogador já usou em
-        partidas (não decks nunca jogados) — não é "por partida", é uma
-        identidade agregada de quais cores esse jogador costuma pilotar.
+        Combinação exata de cores (color identity) mais jogada entre os
+        decks desse jogador, pesada pelo número de partidas de cada deck —
+        não a união de todas as cores já pilotadas, que convergiria pra
+        "WUBRG" conforme o jogador testasse mais decks diferentes ao longo
+        do tempo e deixaria de dizer qualquer coisa sobre preferência. Dois
+        decks diferentes com a mesma combinação somam no mesmo grupo.
+        Empate é desempatado pela partida mais recente, mesmo critério dos
+        cards de especialista do dashboard.
         """
         decks = Deck.objects.filter(player=player).annotate(
-            games=Count("match_performances")
+            games=Count("match_performances"),
+            last_game=Max("match_performances__game__date"),
         ).filter(games__gt=0)
-        colors = set()
-        for identity in decks.values_list("color_identity", flat=True):
-            colors.update(identity or "")
-        combined = "".join(c for c in WUBRG_ORDER if c in colors)
-        return combined or "C"
+        buckets = {}
+        for identity, games, last_game in decks.values_list(
+            "color_identity", "games", "last_game"
+        ):
+            key = identity or "C"
+            bucket = buckets.setdefault(key, {"games": 0, "last_game": None})
+            bucket["games"] += games
+            if last_game and (bucket["last_game"] is None or last_game > bucket["last_game"]):
+                bucket["last_game"] = last_game
+        if not buckets:
+            return None
+        identity, data = max(
+            buckets.items(),
+            key=lambda item: (item[1]["games"], item[1]["last_game"] or date.min),
+        )
+        return {"identity": identity, "games": data["games"]}
 
     def _win_rate_trend(self, performances):
         monthly = (
