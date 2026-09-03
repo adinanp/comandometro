@@ -51,19 +51,27 @@ class Command(BaseCommand):
 
             card_info = printings[0]
 
-            types = card_info.get("types", [])
             subtypes = card_info.get("subtypes") or []
             supertypes = card_info.get("supertypes", [])
             text = card_info.get("text") or ""
             keywords = card_info.get("keywords") or []
 
             # Lógica de elegibilidade de Comandante
-            is_legendary_creature = "Legendary" in supertypes and "Creature" in types
+            is_legendary = "Legendary" in supertypes
+            # Regra atualizada: além de criaturas lendárias, qualquer permanente
+            # lendário com poder e resistência impressos pode ser comandante —
+            # cobre veículos e spacecraft lendários (que não são criaturas por
+            # padrão), sem precisar checar o tipo "Creature" separadamente.
+            has_power_and_toughness = (
+                card_info.get("power") is not None
+                and card_info.get("toughness") is not None
+            )
+            is_legendary_pt_permanent = is_legendary and has_power_and_toughness
             is_background_card = "Background" in subtypes
             has_commander_text = "can be your commander" in text.lower()
 
             is_commander_eligible = (
-                is_legendary_creature or is_background_card or has_commander_text
+                is_legendary_pt_permanent or is_background_card or has_commander_text
             )
 
             # Habilidades de dupla de comandante. O MTGJSON grava o keyword de
