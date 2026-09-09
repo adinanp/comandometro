@@ -49,7 +49,7 @@ class DashboardStatsUseCase(BaseUseCase):
                     "win_rate": wr,
                 }
             )
-        ranked_players.sort(key=lambda p: (-p["wins"], -p["total_games"]))
+        ranked_players.sort(key=lambda p: (-p["win_rate"], -p["total_games"]))
 
         top_player = (
             ranked_players[0]
