@@ -44,23 +44,63 @@ via `MutationObserver`) e **manual na sidebar** (subjetivo ou ambíguo):
 |---|---|
 | Jogadores na mesa e apelido de cada um | Auto |
 | Posição inicial (`starting_seat`) | Auto |
-| Comandante de cada deck (nome da carta) | Auto |
+| Comandante de cada deck | Auto (ID do Scryfall, não o nome em texto — ver abaixo) |
 | Contagem de turnos (`turn_count`) | Auto |
 | Pico de vida por jogador (`peak_life_total`) | Auto |
-| Quem foi eliminado, em que turno | Auto |
-| Quem eliminou quem | Manual (formulário rápido ao marcar elim.) |
+| Quem foi eliminado, em que turno | Auto, com confirmação de 1 clique (ver abaixo) |
+| Quem eliminou quem | Manual (formulário rápido ao confirmar a eliminação) |
 | Vencedor da partida | Manual (confirma/sobrescreve o que a auto-detecção de eliminação sugere) |
 | Condição de vitória (`win_condition`) | Manual (texto livre com sugestões) |
 | `mvp_card`, `board_wipes_count`, `counterspell_count`, `complaint_count`, `felt_salty`, `fun_rating` | Manual, por jogador |
 
-**Risco a validar cedo (spike):** só foi possível inspecionar o modo
-solo/demo do EDHPlay (1 jogador, sem rede). O layout exato do DOM numa mesa
-real com 2+ jogadores — como aparecem apelidos, e o estado "eliminado" de um
-assento — não foi confirmado. A primeira tarefa da implementação deve ser
-abrir uma partida real (com mais alguém, nem que seja duas abas/perfis) só
-pra inspecionar o DOM antes de escrever o observer de verdade. Qualquer
-detecção automática que não bater com o que foi assumido aqui degrada pra
-entrada manual — nunca trava o fluxo de anotar a partida.
+### Seletores confirmados (verificado ao vivo, partida real de 4 jogadores)
+
+Validado numa partida real via "Playtest" (modo solo do próprio EDHPlay que
+controla até 4 assentos com decks de verdade da conta) — não só o modo
+demo/goldfish de 1 jogador. É um app Chakra UI/Emotion: as classes CSS são
+hashes que mudam a cada build (`css-x7k2m1`), **não são seletor confiável**.
+O que é estável é atributo semântico (`data-*`, `aria-label`) e estrutura:
+
+- **Assento**: `[data-player-board-id]` — um por jogador, com um UUID estável
+  enquanto a partida dura. Toda leitura por jogador é escopada dentro desse
+  elemento, nunca por índice solto na lista.
+- **Nome**: `button[title="Act as this seat"] p` dentro do assento.
+- **Vida**: `input[aria-label="Life"]` dentro do assento — valor atual no
+  atributo `value`. Confirmado funcionando igual com 4 assentos reais.
+- **Turno**: `[aria-label^="Round "]` em qualquer lugar da tela (ex:
+  `"Round 3 - Click to pass turn"` — número extraído por regex do próprio
+  aria-label).
+- **Zonas** (mão, biblioteca, cemitério, exílio, comandante): já confirmado
+  antes, `[data-zone-name="<zona>"][data-zone-player-id="<uuid-do-assento>"]`.
+- **Contagem de jogadores**: `[data-players]` no `.game-layout` (o nome da
+  classe `game-layout` em si, não hash, parece ser deliberado e mais estável
+  que o resto — mas o `data-players` é o sinal principal).
+- **Comandante — sem texto no DOM:** o card do comandante não tem `alt`/
+  `title` com o nome — é só a arte do Magic renderizada (o nome que aparece
+  é pixel da imagem, não texto). Mas a tag `<img>` dentro da zona de
+  comandante carrega a URL da Scryfall com o ID do card:
+  `https://cards.scryfall.io/small/front/.../<scryfall-id>.jpg`. A extensão
+  extrai esse `scryfall-id` por regex da URL e resolve o nome chamando a API
+  pública da Scryfall (`GET https://api.scryfall.com/cards/<id>`) uma vez por
+  card visto, com cache — mesmo padrão de uso público que outras ferramentas
+  de MTG já fazem (o próprio Comandometro já importa dados da Scryfall/
+  MTGJSON via `apps/cards/management/commands/import_mtgjson.py`). Se a
+  chamada falhar, guarda só o `scryfall_id` e deixa o nome em branco — não
+  bloqueia a captura.
+- **Eliminação — sem atributo estável, mas com sinal forte:** zerar a vida de
+  um assento (`input[aria-label="Life"]` chega a `"0"`) dispara **automaticamente**
+  um modal do próprio EDHPlay ("Concede Game — Are you sure you want to
+  concede? You will be eliminated from the game."), e ao confirmar, o board
+  daquele assento ganha um elemento extra (overlay de caveira cobrindo o
+  board) que não existe nos assentos vivos — mas via uma classe hash, não um
+  atributo semântico. Como vida chegando a zero **não cobre todas as formas
+  de eliminação** (dano de comandante, veneno, mill) e o overlay não tem
+  seletor estável, a extensão usa as duas coisas só como **gatilho de
+  sugestão**: (a) vida do assento ficou ≤ 0, OU (b) o container do assento
+  ganhou um filho a mais do que tinha no início da partida (diff estrutural,
+  não por nome de classe) → mostra um prompt de 1 clique "Jogador X parece
+  eliminado no turno N — confirmar?" na sidebar. Nunca marca eliminação
+  sozinha sem essa confirmação.
 
 ### Arquitetura
 
@@ -103,7 +143,8 @@ entrada manual — nunca trava o fluxo de anotar a partida.
     {
       "seat": 1,
       "display_name": "AdinanP",
-      "commander": "Muldrotha, the Gravetide",
+      "commander_scryfall_id": "f0797466-c527-4d35-86bc-e0e90fd04073",
+      "commander_name": "Muldrotha, the Gravetide",
       "peak_life_total": 42,
       "eliminated_on_turn": 5,
       "is_winner": false,
@@ -128,9 +169,11 @@ Notas sobre o schema:
   import, ver seção 2), não vão duplicados no JSON. Guardar a lista bruta
   mantém a granularidade pra métricas futuras de "quem mata quem", que não
   estamos construindo agora.
-- Nenhum ID do Comandometro aparece aqui — `display_name` e `commander` são
-  só o texto como apareceu no EDHPlay. O mapeamento pra `Player`/`Deck` reais
-  acontece na chamada da API (seção 2), não na extensão.
+- Nenhum ID do Comandometro aparece aqui — `display_name` é só o texto como
+  apareceu no EDHPlay, e `commander_name` é best-effort (pode vir `null` se a
+  consulta à Scryfall falhar, sobra sempre o `commander_scryfall_id`). O
+  mapeamento pra `Player`/`Deck` reais acontece na chamada da API (seção 2),
+  não na extensão — nenhum dos dois campos de comandante é usado pra isso.
 
 ### Fora do escopo do v1 (adiado, não esquecido)
 
