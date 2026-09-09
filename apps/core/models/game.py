@@ -20,6 +20,7 @@ class WinConditionChoices(models.TextChoices):
     SOFT_LOCK = "soft_lock", "Soft Lock"
     BURN_LIFELOSS = "burn_lifeloss", "Queima/Perda de Vida"
     COMMANDER_DAMAGE = "commander_damage", "Dano de Comandante"
+    DIRECT_DAMAGE = "direct_damage", "Dano Direto"
 
 
 _WINCON_LABEL_TO_VALUE = {label.lower(): value for value, label in WinConditionChoices.choices}
