@@ -88,12 +88,10 @@ class PodInsightsUseCase(BaseUseCase):
 
     def _top_commanders(self, pod, since):
         """
-        Top 5 comandantes por número de aparições, desempate por win rate —
+        Top 5 comandantes por win rate, desempate por número de aparições —
         antes exigia >=5 jogos e >=20% WR pra entrar, o que deixava o card
-        vazio em pods novos/pequenos. Ordenar por aparições em vez de só WR
-        evita que um deck jogado 1 vez com 100% WR pareça "o melhor do pod";
-        jogos e WR ficam visíveis na linha pra quem quiser julgar o tamanho
-        da amostra.
+        vazio em pods novos/pequenos. Jogos e WR ficam visíveis na linha pra
+        quem quiser julgar o tamanho da amostra (ex: 100% WR em 1 jogo).
         """
         rows = []
         for deck in Deck.objects.filter(player__pod=pod).select_related("player"):
@@ -114,7 +112,7 @@ class PodInsightsUseCase(BaseUseCase):
                     "win_rate": win_rate,
                 }
             )
-        rows.sort(key=lambda row: (-row["games"], -row["win_rate"]))
+        rows.sort(key=lambda row: (-row["win_rate"], -row["games"]))
         return self._pad(rows[:5], 5)
 
     def _seat_stats(self, pod, since):
