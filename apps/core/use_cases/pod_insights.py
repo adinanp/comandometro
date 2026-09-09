@@ -13,7 +13,7 @@ class PodInsightsUseCase(BaseUseCase):
             "color_identity_stats": self._color_identity_combo_stats(pod, since),
             "wincon_trend": self._wincon_trend(pod, since),
             "points_ranking": self._points_ranking(pod, since),
-            "top_commanders_qualified": self._top_commanders_qualified(pod, since),
+            "top_commanders": self._top_commanders(pod, since),
             "seat_stats": self._seat_stats(pod, since),
         }
 
@@ -86,23 +86,36 @@ class PodInsightsUseCase(BaseUseCase):
         ranking.sort(key=lambda row: row["points"], reverse=True)
         return ranking
 
-    def _top_commanders_qualified(self, pod, since):
-        qualified = []
-        for deck in Deck.objects.filter(player__pod=pod):
+    def _top_commanders(self, pod, since):
+        """
+        Top 5 comandantes por número de aparições, desempate por win rate —
+        antes exigia >=5 jogos e >=20% WR pra entrar, o que deixava o card
+        vazio em pods novos/pequenos. Ordenar por aparições em vez de só WR
+        evita que um deck jogado 1 vez com 100% WR pareça "o melhor do pod";
+        jogos e WR ficam visíveis na linha pra quem quiser julgar o tamanho
+        da amostra.
+        """
+        rows = []
+        for deck in Deck.objects.filter(player__pod=pod).select_related("player"):
             performances = deck.match_performances.all()
             if since:
                 performances = performances.filter(game__date__gte=since)
             games = performances.count()
-            if games < 5:
+            if games == 0:
                 continue
             wins = performances.filter(placement=1).count()
             win_rate = round((wins / games * 100), 1)
-            if win_rate >= 20:
-                qualified.append(
-                    {"deck": deck, "games": games, "wins": wins, "win_rate": win_rate}
-                )
-        qualified.sort(key=lambda row: row["win_rate"], reverse=True)
-        return qualified
+            rows.append(
+                {
+                    "deck": deck,
+                    "player": deck.player,
+                    "games": games,
+                    "wins": wins,
+                    "win_rate": win_rate,
+                }
+            )
+        rows.sort(key=lambda row: (-row["games"], -row["win_rate"]))
+        return self._pad(rows[:5], 5)
 
     def _seat_stats(self, pod, since):
         performances = GameParticipant.objects.filter(game__pod=pod).exclude(
