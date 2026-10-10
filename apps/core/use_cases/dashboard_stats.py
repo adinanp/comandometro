@@ -10,6 +10,11 @@ from apps.core.models import (
 from apps.core.use_cases.base import BaseUseCase
 
 
+# Jogadores com menos partidas que isso não entram no TOP 5 (amostra pequena
+# distorce o win rate).
+MIN_RANKED_PLAYER_GAMES = 5
+
+
 class DashboardStatsUseCase(BaseUseCase):
     def perform_request(self, pod, since=None) -> dict:
         games = Game.objects.filter(pod=pod)
@@ -38,6 +43,8 @@ class DashboardStatsUseCase(BaseUseCase):
             if since:
                 performances = performances.filter(game__date__gte=since)
             total = performances.count()
+            if total < MIN_RANKED_PLAYER_GAMES:
+                continue
             wins = performances.filter(placement=1).count()
             wr = round((wins / total * 100), 1) if total else 0
             ranked_players.append(

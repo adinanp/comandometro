@@ -103,8 +103,8 @@
 
   </div>
 
-  <!-- Grid Principal (Wincon Modes | Ranking lado a lado, Achievements embaixo) -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <!-- Grid Principal (Wincons | Jogadores | Comandantes lado a lado, Achievements embaixo) -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
     <!-- Wincon Modes -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -179,6 +179,45 @@
       </div>
     </div>
 
+    <!-- Top 5 Comandantes -->
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+        <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">TOP 5 COMANDANTES</h2>
+        <span class="text-xs text-gray-400">Mín. 5 aparições</span>
+      </div>
+      <div class="p-4 space-y-3">
+        {% for row in top_commanders %}
+        {% if row.empty %}
+        <div class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50/30">
+          <span class="text-xs text-gray-300 font-semibold pl-1">#{{ forloop.counter }}</span>
+        </div>
+        {% else %}
+        <div class="flex items-center justify-between p-3 rounded-xl border {% if forloop.first %}border-amber-200 bg-amber-50/20{% else %}border-gray-100 bg-gray-50/30{% endif %}">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="text-base font-bold">
+              {% if forloop.counter == 1 %}🏆
+              {% elif forloop.counter == 2 %}🥈
+              {% elif forloop.counter == 3 %}🥉
+              {% else %}<span class="text-xs text-gray-400 font-semibold pl-1">#{{ forloop.counter }}</span>
+              {% endif %}
+            </span>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-gray-900 truncate">
+                <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=row.deck.id %}" class="hover:underline">{{ row.deck.display_commanders }}</a>
+              </p>
+              <p class="text-xs text-gray-400 truncate">
+                <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=row.player.id %}" class="hover:underline">{{ row.player.name }}</a>
+                · {{ row.games }} aparições
+              </p>
+            </div>
+          </div>
+          <span class="text-sm font-bold text-gray-900 shrink-0">{{ row.win_rate }}% WR</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
   </div>
 
   <!-- Achievements do Pod (Top 5) -->
@@ -221,7 +260,6 @@
     <div class="flex flex-wrap gap-2 mb-4">
       <button type="button" data-metric-tab="especialistas" class="metric-tab-btn px-3 py-1.5 rounded-md border text-xs font-medium">Especialistas</button>
       <button type="button" data-metric-tab="partidas" class="metric-tab-btn px-3 py-1.5 rounded-md border text-xs font-medium">Partidas &amp; Mesa</button>
-      <button type="button" data-metric-tab="decks" class="metric-tab-btn px-3 py-1.5 rounded-md border text-xs font-medium">Decks</button>
       <button type="button" data-metric-tab="historico" class="metric-tab-btn px-3 py-1.5 rounded-md border text-xs font-medium">Histórico</button>
     </div>
 
@@ -326,47 +364,6 @@
           </a>
           {% empty %}
           <div class="p-4 text-center text-xs text-gray-400">Nenhuma partida com posição inicial registrada ainda.</div>
-          {% endfor %}
-        </div>
-      </div>
-
-    </div>
-
-    <div data-metric-panel="decks" class="space-y-3 hidden">
-
-      <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">TOP 5 COMANDANTES</h3>
-        </div>
-        <div class="p-4 space-y-3">
-          {% for row in top_commanders %}
-          {% if row.empty %}
-          <div class="flex items-center p-3 rounded-xl border border-gray-100 bg-gray-50/30">
-            <span class="text-xs text-gray-300 font-semibold pl-1">#{{ forloop.counter }}</span>
-          </div>
-          {% else %}
-          <div class="flex items-center justify-between p-3 rounded-xl border {% if forloop.first %}border-amber-200 bg-amber-50/20{% else %}border-gray-100 bg-gray-50/30{% endif %}">
-            <div class="flex items-center gap-3 min-w-0">
-              <span class="text-base font-bold">
-                {% if forloop.counter == 1 %}🏆
-                {% elif forloop.counter == 2 %}🥈
-                {% elif forloop.counter == 3 %}🥉
-                {% else %}<span class="text-xs text-gray-400 font-semibold pl-1">#{{ forloop.counter }}</span>
-                {% endif %}
-              </span>
-              <div class="min-w-0">
-                <p class="text-sm font-bold text-gray-900 truncate">
-                  <a href="{% url 'core:deck-detail' pod_slug=pod.slug pk=row.deck.id %}" class="hover:underline">{{ row.deck.display_commanders }}</a>
-                </p>
-                <p class="text-xs text-gray-400 truncate">
-                  <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=row.player.id %}" class="hover:underline">{{ row.player.name }}</a>
-                  · {{ row.games }} aparições
-                </p>
-              </div>
-            </div>
-            <span class="text-sm font-bold text-gray-900 shrink-0">{{ row.win_rate }}% WR</span>
-          </div>
-          {% endif %}
           {% endfor %}
         </div>
       </div>
