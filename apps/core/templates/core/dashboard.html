@@ -103,42 +103,8 @@
 
   </div>
 
-  <!-- Grid Principal (Wincons | Jogadores | Comandantes lado a lado, Achievements embaixo) -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-    <!-- Wincon Modes -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-        <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">
-          TOP 5 WINCONS
-        </h2>
-        <span class="text-xs text-gray-400">Distribuição de vitórias</span>
-      </div>
-      <div class="divide-y divide-gray-100">
-        <div class="px-4 py-2 bg-gray-50/30 flex justify-between text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-          <span>WINCON MODE</span>
-          <div class="flex items-center gap-8">
-            <span>#</span>
-            <span class="w-12 text-right">%</span>
-          </div>
-        </div>
-        {% for mode in wincon_modes %}
-        {% if mode.empty %}
-        <div class="p-4 flex items-center justify-between text-sm">
-          <span class="text-gray-300">—</span>
-        </div>
-        {% else %}
-        <a href="{% url 'core:game-list' pod_slug=pod.slug %}?wincon={{ mode.value|urlencode }}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
-          <span class="font-medium text-gray-700">{{ mode.name }}</span>
-          <div class="flex items-center gap-8">
-            <span class="text-gray-500">{{ mode.count }}</span>
-            <span class="font-bold text-gray-900 w-12 text-right">{{ mode.percentage }}%</span>
-          </div>
-        </a>
-        {% endif %}
-        {% endfor %}
-      </div>
-    </div>
+  <!-- Grid Principal (Jogadores | Comandantes lado a lado, Achievements embaixo) -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
     <!-- Top 5 Jogadores -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -371,6 +337,39 @@
     </div>
 
     <div data-metric-panel="historico" class="space-y-3 hidden">
+
+      <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+          <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">
+            TOP 5 WINCONS
+          </h2>
+          <span class="text-xs text-gray-400">Distribuição de vitórias</span>
+        </div>
+        <div class="divide-y divide-gray-100">
+          <div class="px-4 py-2 bg-gray-50/30 flex justify-between text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+            <span>WINCON MODE</span>
+            <div class="flex items-center gap-8">
+              <span>#</span>
+              <span class="w-12 text-right">%</span>
+            </div>
+          </div>
+          {% for mode in wincon_modes %}
+          {% if mode.empty %}
+          <div class="p-4 flex items-center justify-between text-sm">
+            <span class="text-gray-300">—</span>
+          </div>
+          {% else %}
+          <a href="{% url 'core:game-list' pod_slug=pod.slug %}?wincon={{ mode.value|urlencode }}" class="p-4 flex items-center justify-between text-sm hover:bg-gray-50/50 transition">
+            <span class="font-medium text-gray-700">{{ mode.name }}</span>
+            <div class="flex items-center gap-8">
+              <span class="text-gray-500">{{ mode.count }}</span>
+              <span class="font-bold text-gray-900 w-12 text-right">{{ mode.percentage }}%</span>
+            </div>
+          </a>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
 
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div class="p-4 border-b border-gray-100 bg-gray-50/50">
