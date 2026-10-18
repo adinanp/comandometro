@@ -24,7 +24,7 @@
   </div>
 
   <!-- Cards Superior (Stats Cards) -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
     <!-- Card Maior Vencedor -->
     <div class="p-4 bg-amber-50/40 border border-amber-200/80 rounded-xl">
@@ -56,6 +56,9 @@
       </p>
     {% if top_wincon %}</a>{% else %}</div>{% endif %}
 
+    {% comment %}
+    Card Carta MVP — oculto do topo por enquanto; o cálculo (`top_mvp`)
+    continua no use case, é só descomentar pra voltar a exibir.
     <!-- Card Carta MVP -->
     <div class="p-4 bg-white border border-gray-200 rounded-xl flex items-center gap-3">
       {% if top_mvp.image_url %}
@@ -76,6 +79,7 @@
         <p class="text-xs text-gray-400 mt-1">Mais votada como destaque</p>
       </div>
     </div>
+    {% endcomment %}
 
     <!-- Card Métricas Totais -->
     <div class="p-4 bg-white border border-gray-200 rounded-xl flex items-center justify-around text-center">
