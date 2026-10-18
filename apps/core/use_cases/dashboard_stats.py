@@ -217,7 +217,7 @@ class DashboardStatsUseCase(BaseUseCase):
 
     def _top_first_to_die(self, participants):
         """
-        "Primeiro a Cair" — derivado da colocação: quem morreu primeiro numa
+        "Saco de Pancada" (primeiro a cair) — derivado da colocação: quem morreu primeiro numa
         partida é quem ficou com a pior colocação. Só conta partidas em que
         todo participante tem colocação preenchida (sem isso não dá pra saber
         quem caiu primeiro); empate na pior colocação conta pra todos os
