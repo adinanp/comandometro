@@ -45,11 +45,15 @@ class GameForm(forms.ModelForm):
 
     class Meta:
         model = Game
-        fields = ["date", "win_condition", "turn_count", "notes"]
+        fields = ["date", "win_condition", "turn_count", "notes", "first_blood_player"]
         labels = {
             "date": "Data",
             "turn_count": "Contagem de turnos",
             "notes": "Notas",
+            "first_blood_player": "🩸 First Blood",
+        }
+        help_texts = {
+            "first_blood_player": "Quem fez a primeira eliminação da partida.",
         }
         widgets = {
             "date": forms.DateInput(
@@ -57,11 +61,14 @@ class GameForm(forms.ModelForm):
             ),
             "turn_count": forms.NumberInput(attrs={"class": "form-input", "min": 0}),
             "notes": forms.Textarea(attrs={"class": "form-input", "rows": 3}),
+            "first_blood_player": forms.Select(attrs={"class": "form-input"}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pod=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["date"].required = True
+        self.fields["first_blood_player"].queryset = Player.objects.filter(pod=pod).order_by("name")
+        self.fields["first_blood_player"].empty_label = "Ninguém / não lembro"
         if self.instance and self.instance.pk:
             self.fields["win_condition"].initial = wincon_label(self.instance.win_condition)
 
@@ -170,6 +177,32 @@ class GameParticipantForm(forms.Form):
 GameParticipantFormSet = formset_factory(
     GameParticipantForm, extra=0, min_num=2, validate_min=True, can_delete=True
 )
+
+
+def validate_first_blood(game_form, formset):
+    """
+    O First Blood é um campo da partida, mas só faz sentido se o jogador
+    escolhido estiver entre os participantes do formset (ignorando as
+    linhas marcadas pra remoção) — o <select> já é filtrado no JS, isto é
+    a garantia do lado do servidor. Adiciona o erro no `game_form` e
+    devolve False se não bater.
+    """
+    first_blood = game_form.cleaned_data.get("first_blood_player")
+    if not first_blood:
+        return True
+    players = {
+        form.cleaned_data["player"].id
+        for form in formset
+        if form not in formset.deleted_forms
+        and form.cleaned_data
+        and form.cleaned_data.get("player")
+    }
+    if first_blood.id in players:
+        return True
+    game_form.add_error(
+        "first_blood_player", "O First Blood precisa ser de um dos participantes da partida."
+    )
+    return False
 
 
 def save_participants(game, formset):

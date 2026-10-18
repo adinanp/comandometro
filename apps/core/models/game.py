@@ -81,6 +81,14 @@ class Game(models.Model):
     turn_count = models.PositiveIntegerField(
         null=True, blank=True, help_text="Número de turnos até o fim da partida"
     )
+    first_blood_player = models.ForeignKey(
+        "core.Player",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="first_blood_games",
+        help_text="Quem fez a primeira eliminação da partida (precisa ser um dos participantes)",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

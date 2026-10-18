@@ -230,6 +230,16 @@ class Command(BaseCommand):
                     felt_salty=(placement != 1 and random.random() < 0.3),
                     fun_rating=random.choice([None, 2, 3, 4, 4, 5]),
                 )
+
+            # First Blood fica em branco em ~20% das partidas, como acontece
+            # quando ninguém lembra de preencher. Quem ficou em último não
+            # pode ter feito a primeira eliminação.
+            if random.random() < 0.8:
+                worst = len(valid_participants)
+                game.first_blood_player = random.choice(
+                    [p for idx, (p, _) in enumerate(valid_participants) if placements[idx] != worst]
+                )
+                game.save(update_fields=["first_blood_player"])
             games_created += 1
 
         self.stdout.write(self.style.SUCCESS(f"{games_created} partidas geradas."))

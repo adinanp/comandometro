@@ -22,7 +22,9 @@
       {% endif %}
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {% for field in game_form %}
+        {% if field.name != "first_blood_player" %}
         {% include "core/_labeled_field.html" with field=field %}
+        {% endif %}
         {% endfor %}
       </div>
       <datalist id="wincon-datalist">
@@ -52,6 +54,12 @@
       <template id="participant-row-template">
         {% include "core/_participant_row.html" with form=formset.empty_form %}
       </template>
+      <!-- First Blood é campo da partida (Game.first_blood_player), mas fica
+           aqui porque só pode ser um dos participantes acima — o JS esconde
+           as opções de quem não está numa linha ativa. -->
+      <div class="p-4 border-t border-gray-100 bg-red-50/30 sm:w-1/2">
+        {% include "core/_labeled_field.html" with field=game_form.first_blood_player %}
+      </div>
     </div>
 
     {% if achievement_formset %}
@@ -239,6 +247,21 @@
       if (!currentStillValid) deckSelect.value = "";
     }
 
+    var firstBloodSelect = document.querySelector('select[name="first_blood_player"]');
+
+    // O <select> de First Blood só oferece quem está numa linha ativa de
+    // participante; se o escolhido sair da mesa, volta pra "ninguém".
+    function refreshFirstBloodOptions(selectedPlayers) {
+      if (!firstBloodSelect) return;
+      Array.prototype.forEach.call(firstBloodSelect.options, function (option) {
+        if (!option.value) return;
+        option.hidden = selectedPlayers.indexOf(option.value) === -1;
+      });
+      if (firstBloodSelect.value && selectedPlayers.indexOf(firstBloodSelect.value) === -1) {
+        firstBloodSelect.value = "";
+      }
+    }
+
     function refreshPlayerAvailability() {
       var rows = activeParticipantRows();
       var selectedElsewhere = [];
@@ -246,6 +269,7 @@
         var value = row.querySelector('select[name$="-player"]').value;
         if (value) selectedElsewhere.push(value);
       });
+      refreshFirstBloodOptions(selectedElsewhere);
       rows.forEach(function (row) {
         var select = row.querySelector('select[name$="-player"]');
         var currentValue = select.value;

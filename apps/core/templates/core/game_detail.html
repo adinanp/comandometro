@@ -72,6 +72,7 @@
             <td class="p-4 font-semibold text-gray-900">
               <a href="{% url 'core:player-profile' pod_slug=pod.slug pk=row.participant.player.id %}" class="hover:underline">{{ row.participant.player.name }}</a>
               {% if row.participant.is_self_elimination %}<span class="ml-1 text-xs text-red-500">(suicídio)</span>{% endif %}
+              {% if row.participant.player_id == game.first_blood_player_id %}<span title="First Blood — fez a primeira eliminação da partida" class="ml-1 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-red-50 text-red-700 border border-red-200">🩸 First Blood</span>{% endif %}
             </td>
             <td class="p-4">
               <div class="flex items-center gap-1 text-gray-700">

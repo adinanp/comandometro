@@ -7,6 +7,7 @@ from apps.core.forms import (
     GameParticipantFormSet,
     save_achievements,
     save_participants,
+    validate_first_blood,
 )
 from apps.core.models import wincon_suggestions
 from apps.pods.mixins import PodMemberRequiredMixin
@@ -16,7 +17,7 @@ class GameCreateView(PodMemberRequiredMixin, View):
     template_name = "core/game_form.html"
 
     def get(self, request, *args, **kwargs):
-        game_form = GameForm()
+        game_form = GameForm(pod=self.pod)
         formset = GameParticipantFormSet(form_kwargs={"pod": self.pod})
         achievement_formset = AchievementFormSet(
             form_kwargs={"pod": self.pod}, prefix="achievements"
@@ -24,12 +25,17 @@ class GameCreateView(PodMemberRequiredMixin, View):
         return self._render(game_form, formset, achievement_formset)
 
     def post(self, request, *args, **kwargs):
-        game_form = GameForm(request.POST)
+        game_form = GameForm(request.POST, pod=self.pod)
         formset = GameParticipantFormSet(request.POST, form_kwargs={"pod": self.pod})
         achievement_formset = AchievementFormSet(
             request.POST, form_kwargs={"pod": self.pod}, prefix="achievements"
         )
-        if game_form.is_valid() and formset.is_valid() and achievement_formset.is_valid():
+        if (
+            game_form.is_valid()
+            and formset.is_valid()
+            and achievement_formset.is_valid()
+            and validate_first_blood(game_form, formset)
+        ):
             game = game_form.save(commit=False)
             game.pod = self.pod
             game.save()

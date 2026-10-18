@@ -1,3 +1,6 @@
+from collections import defaultdict
+from datetime import date
+
 from django.db.models import Avg, Count, F, Max, Sum
 from apps.core.models import (
     Achievement,
@@ -112,6 +115,8 @@ class DashboardStatsUseCase(BaseUseCase):
             "achievements": achievements,
             "wincon_specialists": self._wincon_specialists(pod, since),
             "biggest_killer": self._biggest_killer(pod, since),
+            "top_first_blood": self._top_first_blood(games, participants),
+            "top_first_to_die": self._top_first_to_die(participants),
         }
 
     def _pad(self, rows, size):
@@ -186,4 +191,75 @@ class DashboardStatsUseCase(BaseUseCase):
             "player_id": top["player_id"],
             "player_name": top["player__name"],
             "kills": top["total_kills"],
+        }
+
+    def _top_first_blood(self, games, participants):
+        """
+        "First Blood" — quem mais vezes fez a primeira eliminação da partida
+        (`Game.first_blood_player`, opcional no cadastro). Empate no total é
+        desempatado pela partida mais recente, como o "Maior Matador".
+        """
+        top = (
+            games.filter(first_blood_player__isnull=False)
+            .values("first_blood_player_id", "first_blood_player__name")
+            .annotate(count=Count("id"), last_game=Max("date"))
+            .order_by("-count", F("last_game").desc(nulls_last=True))
+            .first()
+        )
+        if not top:
+            return None
+        return self._player_highlight(
+            participants,
+            top["first_blood_player_id"],
+            top["first_blood_player__name"],
+            top["count"],
+        )
+
+    def _top_first_to_die(self, participants):
+        """
+        "Primeiro a Cair" — derivado da colocação: quem morreu primeiro numa
+        partida é quem ficou com a pior colocação. Só conta partidas em que
+        todo participante tem colocação preenchida (sem isso não dá pra saber
+        quem caiu primeiro); empate na pior colocação conta pra todos os
+        empatados. Empate no total é desempatado pela partida mais recente.
+        """
+        rows_by_game = defaultdict(list)
+        for row in participants.values(
+            "game_id", "game__date", "player_id", "player__name", "placement"
+        ):
+            rows_by_game[row["game_id"]].append(row)
+
+        tally = {}
+        for rows in rows_by_game.values():
+            if len(rows) < 2 or any(r["placement"] is None for r in rows):
+                continue
+            worst = max(r["placement"] for r in rows)
+            for row in rows:
+                if row["placement"] != worst:
+                    continue
+                entry = tally.setdefault(
+                    row["player_id"],
+                    {"name": row["player__name"], "count": 0, "last_game": None},
+                )
+                entry["count"] += 1
+                game_date = row["game__date"]
+                if game_date and (entry["last_game"] is None or game_date > entry["last_game"]):
+                    entry["last_game"] = game_date
+
+        if not tally:
+            return None
+        player_id, top = max(
+            tally.items(),
+            key=lambda item: (item[1]["count"], item[1]["last_game"] or date.min),
+        )
+        return self._player_highlight(participants, player_id, top["name"], top["count"])
+
+    def _player_highlight(self, participants, player_id, player_name, count):
+        """Monta o card de destaque com o % sobre as partidas que o jogador jogou."""
+        played = participants.filter(player_id=player_id).count()
+        return {
+            "player_id": player_id,
+            "player_name": player_name,
+            "count": count,
+            "percentage": round(count / played * 100, 1) if played else 0,
         }
