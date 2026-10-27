@@ -219,9 +219,11 @@ class DashboardStatsUseCase(BaseUseCase):
         """
         "Saco de Pancada" (primeiro a cair) — derivado da colocação: quem morreu primeiro numa
         partida é quem ficou com a pior colocação. Só conta partidas em que
-        todo participante tem colocação preenchida (sem isso não dá pra saber
-        quem caiu primeiro); empate na pior colocação conta pra todos os
-        empatados. Empate no total é desempatado pela partida mais recente.
+        todo participante tem colocação preenchida e a ordem de eliminação
+        foi registrada — se todos os perdedores estão empatados (só o
+        vencedor foi anotado), não dá pra saber quem caiu primeiro. Empate
+        na pior colocação conta pra todos os empatados. Empate no total é
+        desempatado pela partida mais recente.
         """
         rows_by_game = defaultdict(list)
         for row in participants.values(
@@ -232,6 +234,10 @@ class DashboardStatsUseCase(BaseUseCase):
         tally = {}
         for rows in rows_by_game.values():
             if len(rows) < 2 or any(r["placement"] is None for r in rows):
+                continue
+            best = min(r["placement"] for r in rows)
+            losers = [r for r in rows if r["placement"] != best]
+            if len(losers) >= 2 and len({r["placement"] for r in losers}) == 1:
                 continue
             worst = max(r["placement"] for r in rows)
             for row in rows:

@@ -72,6 +72,18 @@ class FirstToDieStatsTests(_PodFixtureMixin, TestCase):
         self.assertEqual(top["player_id"], self.duda.id)
         self.assertEqual(top["count"], 2)
 
+    def test_games_where_all_losers_tie_are_ignored(self):
+        # Só o vencedor registrado e o resto empatado: não dá pra saber quem
+        # caiu primeiro, então a partida não conta pra ninguém.
+        self._game({self.ana: 1, self.bia: 2, self.caio: 2, self.duda: 2}, day=1)
+        self._game({self.ana: 1, self.bia: 2, self.caio: 2, self.duda: 2}, day=2)
+        self._game({self.ana: 1, self.bia: 2, self.caio: 3, self.duda: 4}, day=3)
+
+        top = DashboardStatsUseCase().execute(self.pod)["top_first_to_die"]
+
+        self.assertEqual(top["player_id"], self.duda.id)
+        self.assertEqual(top["count"], 1)
+
 
 class GameFormFirstBloodTests(_PodFixtureMixin, TestCase):
     def setUp(self):
