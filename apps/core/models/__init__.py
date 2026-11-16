@@ -9,6 +9,7 @@ from .game import (
 )
 from .game_participant import GameParticipant
 from .achievement import Achievement
+from .theme_draw import ThemeDraw, ThemeDrawSeat
 
 __all__ = [
     "Player",
@@ -22,4 +23,6 @@ __all__ = [
     "wincon_suggestions",
     "GameParticipant",
     "Achievement",
+    "ThemeDraw",
+    "ThemeDrawSeat",
 ]
