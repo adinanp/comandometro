@@ -14,3 +14,4 @@ __all__ = [
     "DeckDetailUseCase",
 ]
 from .draw_themes import DrawThemesUseCase
+from .theme_draw_recap import ThemeDrawRecapUseCase

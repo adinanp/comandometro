@@ -8,9 +8,17 @@
       <h1 class="text-2xl font-bold text-gray-900">Sorteio de temas</h1>
       <p class="text-sm text-gray-500">{{ draw.created_at|date:"d/m/Y H:i" }}</p>
     </div>
-    <a href="{% url 'core:theme-draw-create' pod_slug=pod.slug %}" class="text-sm text-gray-600 underline hover:text-gray-900">
-      Novo sorteio
-    </a>
+    <div class="flex items-center gap-3">
+      <a href="{% url 'core:theme-draw-create' pod_slug=pod.slug %}" class="text-sm text-gray-600 underline hover:text-gray-900">
+        Novo sorteio
+      </a>
+      <button type="button" id="share-recap"
+        data-recap-url="{% url 'core:theme-draw-recap' pod_slug=pod.slug pk=draw.pk %}"
+        data-filename="sorteio-de-temas-{{ draw.pk }}.png"
+        class="bg-gray-900 text-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-gray-800 transition disabled:opacity-50">
+        Gerar imagem
+      </button>
+    </div>
   </div>
 
   <div class="grid gap-4 sm:grid-cols-2">
@@ -48,6 +56,40 @@
 
 {% block extra_js %}
 <script>
+  (function () {
+    var button = document.getElementById("share-recap");
+    var label = button.textContent.trim();
+    button.addEventListener("click", function () {
+      button.disabled = true;
+      button.textContent = "Gerando…";
+      fetch(button.dataset.recapUrl)
+        .then(function (resp) {
+          if (!resp.ok) throw new Error(resp.status);
+          return resp.blob();
+        })
+        .then(function (blob) {
+          var file = new File([blob], button.dataset.filename, { type: "image/png" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            return navigator.share({ files: [file] }).catch(function () {});
+          }
+          var link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = button.dataset.filename;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+        })
+        .catch(function () {
+          alert("Não foi possível gerar a imagem. Tente de novo.");
+        })
+        .finally(function () {
+          button.disabled = false;
+          button.textContent = label;
+        });
+    });
+  })();
+
   document.querySelectorAll("[data-summary-url]").forEach(function (el) {
     fetch(el.dataset.summaryUrl, { headers: { Accept: "application/json" } })
       .then(function (resp) {

@@ -15,6 +15,7 @@ from .deck_decklist import DeckDecklistView
 from .theme_draw_create import ThemeDrawCreateView
 from .theme_draw_detail import ThemeDrawDetailView
 from .theme_summary import ThemeSummaryView
+from .theme_draw_recap import ThemeDrawRecapView
 
 __all__ = [
     "DashboardView",
@@ -35,4 +36,5 @@ __all__ = [
     "ThemeDrawCreateView",
     "ThemeDrawDetailView",
     "ThemeSummaryView",
+    "ThemeDrawRecapView",
 ]

@@ -17,6 +17,7 @@ from apps.core.views import (
     PlayerProfileView,
     ThemeDrawCreateView,
     ThemeDrawDetailView,
+    ThemeDrawRecapView,
     ThemeSummaryView,
 )
 
@@ -46,5 +47,10 @@ urlpatterns = [
         "sorteio-de-temas/<int:pk>/resumo/<int:theme_id>/",
         ThemeSummaryView.as_view(),
         name="theme-summary",
+    ),
+    path(
+        "sorteio-de-temas/<int:pk>/recap.png",
+        ThemeDrawRecapView.as_view(),
+        name="theme-draw-recap",
     ),
 ]
