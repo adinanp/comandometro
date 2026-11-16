@@ -1,7 +1,11 @@
+import io
+import urllib.error
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from unittest import mock
 from zoneinfo import ZoneInfo
+
+from PIL import Image, ImageDraw
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -11,8 +15,9 @@ from django.utils import timezone
 
 from apps.cards.models import Theme
 from apps.core.models import Player, ThemeDraw, ThemeDrawSeat
-from apps.core.use_cases import DrawThemesUseCase
+from apps.core.use_cases import DrawThemesUseCase, ThemeDrawRecapUseCase
 from apps.core.use_cases.draw_themes import week_start
+from apps.core.use_cases.theme_draw_recap import fit_text, load_font
 from apps.pods.models import Membership, Pod
 
 SAO_PAULO = ZoneInfo("America/Sao_Paulo")
@@ -135,7 +140,7 @@ class DrawThemesUseCaseTests(ThemeDrawFixtureMixin, TestCase):
 SUMMARY = "apps.cards.use_cases.theme_summary.EnsureThemeSummaryUseCase.perform_request"
 
 
-class ThemeDrawViewTests(ThemeDrawFixtureMixin, TestCase):
+class ThemeDrawViewMixin(ThemeDrawFixtureMixin):
     def setUp(self):
         super().setUp()
         self.user = get_user_model().objects.create_user(username="ana", password="x")
@@ -165,6 +170,8 @@ class ThemeDrawViewTests(ThemeDrawFixtureMixin, TestCase):
             "summary": reverse("core:theme-summary", kwargs={**kwargs, "theme_id": theme_id}),
         }
 
+
+class ThemeDrawViewTests(ThemeDrawViewMixin, TestCase):
     def test_non_member_gets_404(self):
         draw = self._draw()
         urls = self._urls(draw, draw.seats.first().theme_id)
@@ -283,3 +290,87 @@ class ThemeDrawViewTests(ThemeDrawFixtureMixin, TestCase):
             )
             self.assertEqual(self.client.get(foreign_url).status_code, 404)
         generate.assert_not_called()
+
+
+RECAP_URLOPEN = "apps.core.use_cases.theme_draw_recap.urllib.request.urlopen"
+
+
+def _jpeg_response(*args, **kwargs):
+    buffer = io.BytesIO()
+    Image.new("RGB", (10, 10), "purple").save(buffer, format="JPEG")
+    response = mock.MagicMock()
+    response.read.return_value = buffer.getvalue()
+    response.__enter__.return_value = response
+    return response
+
+
+class ThemeDrawRecapTests(ThemeDrawViewMixin, TestCase):
+    def _recap_url(self, draw):
+        return reverse(
+            "core:theme-draw-recap", kwargs={"pod_slug": self.pod.slug, "pk": draw.pk}
+        )
+
+    def _with_art(self):
+        draw = self._draw()
+        Theme.objects.update(art_crop_url="https://x/art.jpg", summary="Resumo curto.")
+        return draw
+
+    def test_recap_is_png_1080x1350(self):
+        draw = self._with_art()
+
+        with mock.patch(RECAP_URLOPEN, side_effect=_jpeg_response):
+            png = ThemeDrawRecapUseCase().execute(draw)
+
+        image = Image.open(io.BytesIO(png))
+        self.assertEqual(image.format, "PNG")
+        self.assertEqual(image.size, (1080, 1350))
+
+    def test_recap_does_not_call_gemini(self):
+        draw = self._draw()  # temas sem resumo
+
+        with mock.patch(RECAP_URLOPEN, side_effect=_jpeg_response), mock.patch(
+            SUMMARY
+        ) as ensure, mock.patch("apps.cards.llm.generate_text") as generate:
+            ThemeDrawRecapUseCase().execute(draw)
+
+        ensure.assert_not_called()
+        generate.assert_not_called()
+
+    def test_recap_survives_missing_art_and_commanders(self):
+        draw = self._draw()
+        Theme.objects.update(top_commanders=[])
+        theme = draw.seats.first().theme
+        Theme.objects.filter(pk=theme.pk).update(art_crop_url="https://x/broken.jpg")
+
+        with mock.patch(RECAP_URLOPEN, side_effect=urllib.error.URLError("down")):
+            png = ThemeDrawRecapUseCase().execute(draw)
+
+        self.assertEqual(Image.open(io.BytesIO(png)).size, (1080, 1350))
+
+    def test_fit_text_truncates_long_names(self):
+        canvas = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+        font = load_font("body", 20)
+
+        lines = fit_text(canvas, "X" * 60, font, max_width=400, max_lines=1)
+        self.assertEqual(len(lines), 1)
+        self.assertTrue(lines[0].endswith("…"))
+        self.assertLessEqual(canvas.textlength(lines[0], font=font), 400)
+
+        summary = ("Sacrifica as próprias criaturas por valor e drena a mesa a cada "
+                   "morte, com peças como Blood Artist e mais.")
+        lines = fit_text(canvas, summary, font, max_width=300, max_lines=2)
+        self.assertLessEqual(len(lines), 2)
+        for line in lines:
+            self.assertLessEqual(canvas.textlength(line, font=font), 300)
+
+    def test_recap_view_requires_member_and_returns_png(self):
+        draw = self._with_art()
+
+        with mock.patch(RECAP_URLOPEN, side_effect=_jpeg_response):
+            response = self.client.get(self._recap_url(draw))
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response["Content-Type"], "image/png")
+
+            outsider = get_user_model().objects.create_user(username="ze", password="x")
+            self.client.force_login(outsider)
+            self.assertEqual(self.client.get(self._recap_url(draw)).status_code, 404)
