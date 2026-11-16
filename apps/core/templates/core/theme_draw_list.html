@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Sorteio de temas</h1>
+      <p class="text-sm text-gray-500">Tudo o que já foi sorteado no pod.</p>
+    </div>
+    <a href="{% url 'core:theme-draw-create' pod_slug=pod.slug %}"
+      class="bg-gray-900 text-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-gray-800 transition">
+      Novo sorteio
+    </a>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="divide-y divide-gray-100">
+      {% for draw in draws %}
+      <a href="{% url 'core:theme-draw-detail' pod_slug=pod.slug pk=draw.pk %}" class="block p-4 hover:bg-gray-50/50 transition">
+        <div class="text-xs text-gray-400 mb-2">{{ draw.created_at|date:"d/m/Y H:i" }}</div>
+        <div class="grid gap-x-6 gap-y-1 sm:grid-cols-2 text-sm">
+          {% for seat in draw.seats.all %}
+          <div class="flex items-baseline gap-2 min-w-0">
+            <span class="font-semibold text-gray-900 truncate">{{ seat.player }}</span>
+            <span class="text-gray-300 shrink-0">→</span>
+            <span class="font-bold uppercase tracking-wide text-orange-600 shrink-0">{{ seat.theme.name }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </a>
+      {% empty %}
+      <div class="p-6 text-center text-sm text-gray-400">
+        Nenhum sorteio ainda.
+        <a href="{% url 'core:theme-draw-create' pod_slug=pod.slug %}" class="underline hover:text-gray-700">Fazer o primeiro</a>.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if is_paginated %}
+  <div class="flex items-center justify-between text-sm">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="text-gray-600 hover:text-gray-900">« Anterior</a>
+    {% else %}<span></span>{% endif %}
+    <span class="text-gray-400">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="text-gray-600 hover:text-gray-900">Próxima »</a>
+    {% else %}<span></span>{% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

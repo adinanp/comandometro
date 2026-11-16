@@ -292,3 +292,11 @@ class CleanSummaryEdgeCaseTests(TestCase):
 
     def test_strips_markdown_emphasis_and_prefix(self):
         self.assertEqual(clean_summary("**Resumo:** _Sacrifica_ criaturas."), "Sacrifica criaturas.")
+
+
+class ThemeEdhrecUrlTests(TestCase):
+    def test_edhrec_url_points_to_tag_page(self):
+        self.assertEqual(
+            Theme(slug="plus-1-plus-1-counters").edhrec_url,
+            "https://edhrec.com/tags/plus-1-plus-1-counters",
+        )

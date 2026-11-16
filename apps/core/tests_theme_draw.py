@@ -167,6 +167,7 @@ class ThemeDrawViewMixin(ThemeDrawFixtureMixin):
         Membership.objects.create(pod=self.pod, user=self.user)
         self.client.force_login(self.user)
         self.create_url = reverse("core:theme-draw-create", kwargs={"pod_slug": self.pod.slug})
+        self.list_url = reverse("core:theme-draw-list", kwargs={"pod_slug": self.pod.slug})
 
     def _themes_with_data(self, count=6):
         themes = make_themes(count)
@@ -275,6 +276,47 @@ class ThemeDrawViewTests(ThemeDrawViewMixin, TestCase):
         for name in seat.theme.top_commander_names():
             self.assertContains(response, name)
         self.assertNotContains(response, seat.theme.top_commanders[3]["name"])
+
+    def test_detail_links_theme_to_edhrec(self):
+        draw = self._draw()
+        theme = draw.seats.first().theme
+
+        response = self.client.get(self._urls(draw, theme.pk)["detail"])
+
+        self.assertContains(response, f'href="https://edhrec.com/tags/{theme.slug}"')
+
+    def test_list_shows_pod_draws_newest_first(self):
+        first = self._draw()
+        second = DrawThemesUseCase().execute(self.pod, self.players)
+        other_players = [self.outsider] + [
+            Player.objects.create(pod=self.other_pod, name=n) for n in ("X", "Y", "Z")
+        ]
+        foreign = DrawThemesUseCase().execute(self.other_pod, other_players)
+
+        response = self.client.get(self.list_url)
+
+        draws = list(response.context["draws"])
+        self.assertEqual(draws, [second, first])
+        self.assertNotIn(foreign, draws)
+        detail = reverse(
+            "core:theme-draw-detail", kwargs={"pod_slug": self.pod.slug, "pk": second.pk}
+        )
+        self.assertContains(response, f'href="{detail}"')
+        for seat in second.seats.all():
+            self.assertContains(response, seat.player.name)
+            self.assertContains(response, seat.theme.name)
+
+    def test_list_empty_state_links_to_new_draw(self):
+        response = self.client.get(self.list_url)
+
+        self.assertContains(response, "Nenhum sorteio ainda")
+        self.assertContains(response, f'href="{self.create_url}"')
+
+    def test_list_non_member_gets_404(self):
+        outsider = get_user_model().objects.create_user(username="ze2", password="x")
+        self.client.force_login(outsider)
+
+        self.assertEqual(self.client.get(self.list_url).status_code, 404)
 
     def test_detail_with_theme_without_commanders(self):
         draw = self._draw()
