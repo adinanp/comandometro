@@ -4,8 +4,8 @@ para que mudanças de formato fiquem num lugar só. Usado apenas pelo comando
 `sync_edhrec_themes` — nada do app consulta o EDHREC durante o uso normal.
 """
 
+import http.client
 import json
-import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
@@ -65,10 +65,12 @@ class EdhrecThemeClient:
     def parse_top_commanders(payload, limit):
         for cardlist in _cardlists(payload):
             if cardlist.get("tag") == "topcommanders":
-                return [
+                commanders = [
                     {"name": c["name"], "num_decks": int(c.get("num_decks") or 0)}
-                    for c in cardlist.get("cardviews", [])[:limit]
+                    for c in cardlist.get("cardviews", [])
+                    if c.get("name")
                 ]
+                return commanders[:limit]
         return []
 
     def _get_json(self, url):
@@ -76,5 +78,6 @@ class EdhrecThemeClient:
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
-        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        # OSError cobre URLError/timeout/reset; HTTPException cobre corpo truncado.
+        except (OSError, http.client.HTTPException, ValueError) as exc:
             raise EdhrecError(f"Falha ao buscar {url}: {exc}") from exc

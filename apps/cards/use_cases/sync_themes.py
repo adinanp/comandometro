@@ -3,7 +3,7 @@ import time
 
 from django.utils import timezone
 
-from apps.cards.edhrec import EdhrecError, EdhrecThemeClient
+from apps.cards.edhrec import EdhrecThemeClient
 from apps.cards.models import Theme
 from apps.core.use_cases.base import BaseUseCase
 
@@ -44,8 +44,8 @@ class SyncEdhrecThemesUseCase(BaseUseCase):
                 time.sleep(delay)  # mantém o ritmo abaixo de ~5 req/s
             try:
                 commanders = client.top_commanders(slug, limit=TOP_COMMANDERS_STORED)
-            except EdhrecError:
-                logger.warning("Falha ao sincronizar o tema %s", slug)
+            except Exception:  # um tema com problema não derruba a sync inteira
+                logger.warning("Falha ao sincronizar o tema %s", slug, exc_info=True)
                 failed.append(slug)
                 continue
             self._save_details(Theme.objects.get(slug=slug), commanders)

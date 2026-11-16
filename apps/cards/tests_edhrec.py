@@ -1,3 +1,4 @@
+import http.client
 import json
 import urllib.error
 from pathlib import Path
@@ -58,3 +59,31 @@ class EdhrecParsingTests(SimpleTestCase):
         ):
             with self.assertRaises(EdhrecError):
                 EdhrecThemeClient().list_themes()
+
+
+class EdhrecRobustnessTests(SimpleTestCase):
+    def test_truncated_body_is_wrapped_as_edhrec_error(self):
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.read.side_effect = http.client.IncompleteRead(b"{")
+        with mock.patch("apps.cards.edhrec.urllib.request.urlopen", return_value=response):
+            with self.assertRaises(EdhrecError):
+                EdhrecThemeClient().top_commanders("voltron")
+
+    def test_commander_without_name_is_skipped(self):
+        payload = {
+            "container": {
+                "json_dict": {
+                    "cardlists": [
+                        {
+                            "tag": "topcommanders",
+                            "cardviews": [{"num_decks": 3}, {"name": "Teysa Karlov", "num_decks": 2}],
+                        }
+                    ]
+                }
+            }
+        }
+
+        commanders = EdhrecThemeClient.parse_top_commanders(payload, limit=10)
+
+        self.assertEqual(commanders, [{"name": "Teysa Karlov", "num_decks": 2}])

@@ -57,9 +57,40 @@
 {% block extra_js %}
 <script>
   (function () {
+    // 1º toque gera a imagem. No celular, o botão vira "Compartilhar" e o
+    // 2º toque chama navigator.share() — o share precisa de um toque recente,
+    // e a geração pode passar da janela de ativação do navegador.
     var button = document.getElementById("share-recap");
     var label = button.textContent.trim();
+    var readyFile = null;
+
+    function download(file) {
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(file);
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+    }
+
+    function reset() {
+      readyFile = null;
+      button.disabled = false;
+      button.textContent = label;
+    }
+
     button.addEventListener("click", function () {
+      if (readyFile) {
+        var file = readyFile;
+        navigator.share({ files: [file] })
+          .catch(function (err) {
+            if (!err || err.name !== "AbortError") download(file);
+          })
+          .finally(reset);
+        return;
+      }
+
       button.disabled = true;
       button.textContent = "Gerando…";
       fetch(button.dataset.recapUrl)
@@ -70,22 +101,17 @@
         .then(function (blob) {
           var file = new File([blob], button.dataset.filename, { type: "image/png" });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            return navigator.share({ files: [file] }).catch(function () {});
+            readyFile = file;
+            button.disabled = false;
+            button.textContent = "Compartilhar";
+            return;
           }
-          var link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = button.dataset.filename;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+          download(file);
+          reset();
         })
         .catch(function () {
           alert("Não foi possível gerar a imagem. Tente de novo.");
-        })
-        .finally(function () {
-          button.disabled = false;
-          button.textContent = label;
+          reset();
         });
     });
   })();
