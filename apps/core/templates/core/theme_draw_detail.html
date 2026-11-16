@@ -28,9 +28,10 @@
     {% for card in cards %}
     <article class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
       {% if card.theme.art_crop_url %}
-      <img src="{{ card.theme.art_crop_url }}" alt="" class="w-full h-32 object-cover" loading="lazy">
+      {# Art crop do Scryfall é ~4:3; 16:9 com foco a 30% do topo mantém o rosto/personagem no quadro. #}
+      <img src="{{ card.theme.art_crop_url }}" alt="" class="w-full aspect-video object-cover object-[50%_30%]" loading="lazy">
       {% else %}
-      <div class="w-full h-32 bg-gray-100"></div>
+      <div class="w-full aspect-video bg-gray-100"></div>
       {% endif %}
       <div class="p-4 space-y-2 flex-1">
         <div class="flex items-baseline justify-between gap-2">
