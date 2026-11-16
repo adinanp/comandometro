@@ -1,0 +1,51 @@
+{
+ "header": "All Tags",
+ "description": "",
+ "container": {
+  "breadcrumb": [
+   {
+    "/tags": "Tags"
+   }
+  ],
+  "description": "Popular tags for decks in EDH / Commander",
+  "json_dict": {
+   "cardlists": [
+    {
+     "header": "Tags By Popularity Sort",
+     "tag": "tagsbypopularitysort",
+     "cardviews": [
+      {
+       "id": "01033dae-fec1-41f2-b7f2-cc6a43331790",
+       "name": "Tokens",
+       "sanitized": "parallel-lives",
+       "slug": "parallel-lives",
+       "url": "/tags/tokens",
+       "image_version": "1783940912",
+       "num_decks": 208942
+      },
+      {
+       "id": "99cfd1a8-49fd-4cc0-96f2-f9f159ce5d55",
+       "name": "+1/+1 Counters",
+       "sanitized": "hardened-scales",
+       "slug": "hardened-scales",
+       "url": "/tags/plus-1-plus-1-counters",
+       "image_version": "1783903765",
+       "num_decks": 168250
+      },
+      {
+       "id": "40140991-cffa-4b52-9a25-37e9a8aa9ddd",
+       "name": "Combo",
+       "sanitized": "mystic-remora",
+       "slug": "mystic-remora",
+       "url": "/tags/combo",
+       "image_version": "1783918491",
+       "num_decks": 123806
+      }
+     ]
+    }
+   ]
+  },
+  "keywords": "All,Tags",
+  "title": "All Tags"
+ }
+}

@@ -1,0 +1,121 @@
+{
+ "header": "Voltron",
+ "description": "",
+ "container": {
+  "breadcrumb": [
+   {
+    "/tags": "Tags"
+   },
+   {
+    "/tags/voltron": "Voltron"
+   }
+  ],
+  "description": "Popular Voltron EDH commanders",
+  "json_dict": {
+   "cardlists": [
+    {
+     "header": "Top Commanders",
+     "tag": "topcommanders",
+     "cardviews": [
+      {
+       "id": "07b4e4f8-6a31-4533-be51-668ce3ddc84f",
+       "name": "Cloud, Ex-SOLDIER",
+       "sanitized": "cloud-ex-soldier",
+       "slug": "cloud-ex-soldier",
+       "url": "/commanders/cloud-ex-soldier/voltron",
+       "image_version": "1783906375",
+       "num_decks": 1897,
+       "potential_decks": 58389
+      },
+      {
+       "id": "d3736f17-f80b-4b2c-b919-2c963bc14682",
+       "name": "Kotis, the Fangkeeper",
+       "sanitized": "kotis-the-fangkeeper",
+       "slug": "kotis-the-fangkeeper",
+       "url": "/commanders/kotis-the-fangkeeper/voltron",
+       "image_version": "1783907308",
+       "num_decks": 1239,
+       "potential_decks": 56754
+      },
+      {
+       "id": "39555a72-a57b-45ee-9222-ce3b9e8de126",
+       "name": "Light-Paws, Emperor's Voice",
+       "sanitized": "light-paws-emperors-voice",
+       "slug": "light-paws-emperors-voice",
+       "url": "/commanders/light-paws-emperors-voice/voltron",
+       "image_version": "1791803693",
+       "num_decks": 1157,
+       "potential_decks": 61797
+      },
+      {
+       "id": "0669ffcf-30c1-4d90-ae5f-3deca0f82526",
+       "name": "Captain America, First Avenger",
+       "sanitized": "captain-america-first-avenger",
+       "slug": "captain-america-first-avenger",
+       "url": "/commanders/captain-america-first-avenger/voltron",
+       "image_version": "1783903308",
+       "num_decks": 931,
+       "potential_decks": 61797
+      }
+     ]
+    },
+    {
+     "header": "Top Cards",
+     "tag": "topcards",
+     "cardviews": [
+      {
+       "id": "4645eebf-c9fc-4ee7-b646-61dc1205b4b0",
+       "name": "Swords to Plowshares",
+       "sanitized": "swords-to-plowshares",
+       "slug": "swords-to-plowshares",
+       "url": "/cards/swords-to-plowshares",
+       "image_version": "1793111861",
+       "synergy": 0.022796865977220082,
+       "lift": 0.9689943022174788,
+       "num_decks": 20961,
+       "potential_decks": 33064
+      },
+      {
+       "id": "3b69b12e-ef29-455c-8939-eacf44c6c3f6",
+       "name": "Swiftfoot Boots",
+       "sanitized": "swiftfoot-boots",
+       "slug": "swiftfoot-boots",
+       "url": "/cards/swiftfoot-boots",
+       "image_version": "1793021194",
+       "synergy": 0.2910413974388191,
+       "lift": 1.8925288382837135,
+       "num_decks": 34501,
+       "potential_decks": 61797
+      },
+      {
+       "id": "cba7cf86-a9e7-4022-bb46-d9b0f136f3ca",
+       "name": "Path to Exile",
+       "sanitized": "path-to-exile",
+       "slug": "path-to-exile",
+       "url": "/cards/path-to-exile",
+       "image_version": "1793197463",
+       "synergy": 0.029232628917107928,
+       "lift": 0.9500303201749352,
+       "num_decks": 16851,
+       "potential_decks": 33064
+      },
+      {
+       "id": "8fbd18ce-0ac3-4b52-9cd0-0af7e0244207",
+       "name": "Sram, Senior Edificer",
+       "sanitized": "sram-senior-edificer",
+       "slug": "sram-senior-edificer",
+       "url": "/cards/sram-senior-edificer",
+       "image_version": "1783903797",
+       "synergy": 0.379860183173909,
+       "lift": 4.763741094274361,
+       "num_decks": 14510,
+       "potential_decks": 33064
+      }
+     ]
+    }
+   ]
+  },
+  "keywords": "Voltron",
+  "title": "Voltron"
+ }
+}
