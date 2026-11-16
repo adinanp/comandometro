@@ -1,3 +1,5 @@
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.db import models
 
 
@@ -59,3 +61,46 @@ class Card(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Theme(models.Model):
+    """
+    Tema/tag de EDH do EDHREC (Voltron, Aristocrats, Elves...). Dado global,
+    carregado por `manage.py sync_edhrec_themes` — nunca consultado online
+    durante o sorteio. O `summary` nasce da LLM na primeira vez que o tema
+    é sorteado.
+    """
+
+    slug = models.CharField(max_length=120, unique=True)
+    name = models.CharField(max_length=120)
+    num_decks = models.PositiveIntegerField(default=0)
+    popularity_rank = models.PositiveIntegerField(default=0)
+    top_commanders = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Lista ordenada [{"name", "num_decks"}] dos top comandantes',
+    )
+    art_crop_url = models.URLField(blank=True)
+    summary = models.CharField(max_length=160, blank=True)
+    summary_model = models.CharField(max_length=80, blank=True)
+    summary_generated_at = models.DateTimeField(null=True, blank=True)
+    edhrec_synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["popularity_rank", "name"]
+
+    def __str__(self):
+        return self.name
+
+    def top_commander_names(self, limit=3):
+        return [c["name"] for c in (self.top_commanders or [])[:limit]]
+
+    def display_num_decks(self):
+        if self.num_decks >= 1000:
+            thousands = str(
+                (Decimal(self.num_decks) / 1000).quantize(
+                    Decimal("0.1"), rounding=ROUND_HALF_UP
+                )
+            ).removesuffix(".0")
+            return f"{thousands.replace('.', ',')} mil decks"
+        return f"{self.num_decks} deck" + ("" if self.num_decks == 1 else "s")
