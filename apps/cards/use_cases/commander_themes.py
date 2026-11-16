@@ -41,3 +41,20 @@ class EnsureCommanderThemesUseCase(BaseUseCase):
             card.save(update_fields=["edhrec_theme_slugs", "edhrec_themes_synced_at"])
             updated += 1
         return updated
+
+
+DECK_SAVE_TIMEOUT_S = 3
+
+
+def ensure_deck_commander_themes(deck):
+    """
+    Chamado pelas views depois de salvar um deck: busca no EDHREC os temas
+    dos comandantes que ainda não têm dados, com timeout curto. Nunca
+    propaga erro — salvar um deck não pode falhar por causa do EDHREC.
+    """
+    try:
+        EnsureCommanderThemesUseCase().execute(
+            deck.commanders.all(), client=EdhrecThemeClient(timeout=DECK_SAVE_TIMEOUT_S)
+        )
+    except Exception:
+        logger.warning("Falha ao buscar temas dos comandantes do deck %s", deck.pk, exc_info=True)
