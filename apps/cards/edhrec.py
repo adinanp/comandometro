@@ -1,11 +1,15 @@
 """
 Cliente da API JSON não oficial do EDHREC (json.edhrec.com), isolado aqui
-para que mudanças de formato fiquem num lugar só. Usado apenas pelo comando
-`sync_edhrec_themes` — nada do app consulta o EDHREC durante o uso normal.
+para que mudanças de formato fiquem num lugar só. Usado pelo comando
+`sync_edhrec_themes` e, para os temas de comandantes novos, ao salvar um deck.
+Dashboard e sorteios nunca consultam o EDHREC.
 """
 
 import http.client
 import json
+import re
+import unicodedata
+import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
@@ -14,8 +18,24 @@ EDHREC_HEADERS = {"User-Agent": "Comandometro/1.0", "Accept": "application/json"
 TAGS_PREFIX = "/tags/"
 
 
+# O EDHREC responde 403 (não 404) para páginas inexistentes.
+NOT_FOUND_STATUSES = {403, 404}
+
+
 class EdhrecError(Exception):
     pass
+
+
+class EdhrecNotFound(EdhrecError):
+    pass
+
+
+def edhrec_commander_slug(name):
+    """Slug da página do comandante: "Atraxa, Praetors' Voice" → atraxa-praetors-voice."""
+    name = name.split(" // ")[0]
+    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
+    name = re.sub(r"['’,]", "", name.lower())
+    return re.sub(r"[^a-z0-9]+", "-", name).strip("-")
 
 
 @dataclass(frozen=True)
@@ -73,11 +93,29 @@ class EdhrecThemeClient:
                 return commanders[:limit]
         return []
 
+    def commander_theme_slugs(self, card_name, limit=5):
+        url = f"{EDHREC_BASE_URL}/commanders/{edhrec_commander_slug(card_name)}.json"
+        try:
+            payload = self._get_json(url)
+        except EdhrecNotFound:
+            return []
+        return self.parse_commander_theme_slugs(payload, limit)
+
+    @staticmethod
+    def parse_commander_theme_slugs(payload, limit):
+        panels = payload.get("panels") or {}
+        taglinks = panels.get("taglinks") if isinstance(panels, dict) else None
+        return [t["slug"] for t in (taglinks or []) if t.get("slug")][:limit]
+
     def _get_json(self, url):
         req = urllib.request.Request(url, headers=EDHREC_HEADERS)
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code in NOT_FOUND_STATUSES:
+                raise EdhrecNotFound(url) from exc
+            raise EdhrecError(f"Falha ao buscar {url}: {exc}") from exc
         # OSError cobre URLError/timeout/reset; HTTPException cobre corpo truncado.
         except (OSError, http.client.HTTPException, ValueError) as exc:
             raise EdhrecError(f"Falha ao buscar {url}: {exc}") from exc
