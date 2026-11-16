@@ -51,6 +51,21 @@ The seed is destructive and meant for development only.
 python manage.py test
 ```
 
+## Deploy
+
+Production runs on Google App Engine Standard (`us-west1`, one always-on F1 instance) with PostgreSQL on [Neon](https://neon.tech).
+
+1. Copy `.env.production.example` to `.env.production` (gitignored) and fill it in. `ALLOWED_HOSTS` is required, or every page returns 400.
+2. Activate the virtualenv and run the deploy script:
+
+```bash
+source .venv/bin/activate
+scripts/deploy_gae.sh                 # checks, collectstatic, migrate, deploy
+scripts/deploy_gae.sh --skip-migrate  # same, without migrate and card import
+```
+
+The script turns `.env.production` into the App Engine `secrets.yaml`, runs `migrate` (and the MTGJSON import on an empty database) from your machine against Neon, deploys, and then deletes previous versions with no traffic, since each one would keep its own instance running outside the free quota.
+
 ## Project docs
 
 The [`.docs/`](.docs/README.md) folder (in Portuguese) describes the architecture, the conventions and the practices the project follows.
