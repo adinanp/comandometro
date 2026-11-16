@@ -2,11 +2,17 @@ import json
 import urllib.error
 from unittest import mock
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from apps.cards.edhrec import EdhrecError, ThemeListing
+from apps.cards.llm import LlmError
 from apps.cards.models import Theme
-from apps.cards.use_cases import ResolveCommanderArtUseCase, SyncEdhrecThemesUseCase
+from apps.cards.use_cases import (
+    EnsureThemeSummaryUseCase,
+    ResolveCommanderArtUseCase,
+    SyncEdhrecThemesUseCase,
+)
+from apps.cards.use_cases.theme_summary import build_summary_prompt, clean_summary
 
 
 class ThemeModelTests(TestCase):
@@ -171,3 +177,89 @@ class SyncThemesTests(TestCase):
         self._sync(_FakeEdhrecClient(self.listing, self.commanders))
 
         self.assertEqual(Theme.objects.get(slug="voltron").summary, "Já existe.")
+
+
+GENERATE = "apps.cards.use_cases.theme_summary.generate_text"
+
+
+@override_settings(GEMINI_API_KEY="k", GEMINI_MODEL="modelo-teste")
+class ThemeSummaryTests(TestCase):
+    def setUp(self):
+        self.theme = Theme.objects.create(
+            slug="aristocrats",
+            name="Aristocrats",
+            top_commanders=[
+                {"name": "Teysa Karlov", "num_decks": 3191},
+                {"name": "Sephiroth, Fabled SOLDIER", "num_decks": 2690},
+                {"name": "Meren of Clan Nel Toth", "num_decks": 1618},
+                {"name": "Quarto Comandante", "num_decks": 10},
+            ],
+        )
+
+    def test_returns_cached_summary_without_calling_llm(self):
+        self.theme.summary = "Já existe."
+        self.theme.save()
+
+        with mock.patch(GENERATE) as generate:
+            self.assertEqual(EnsureThemeSummaryUseCase().execute(self.theme), "Já existe.")
+        generate.assert_not_called()
+
+    @override_settings(GEMINI_API_KEY="")
+    def test_no_api_key_returns_none_without_calling_llm(self):
+        with mock.patch(GENERATE) as generate:
+            self.assertIsNone(EnsureThemeSummaryUseCase().execute(self.theme))
+        generate.assert_not_called()
+
+    def test_saves_summary_model_and_timestamp(self):
+        with mock.patch(GENERATE, return_value="Sacrifica criaturas por valor."):
+            summary = EnsureThemeSummaryUseCase().execute(self.theme)
+
+        self.assertEqual(summary, "Sacrifica criaturas por valor.")
+        self.theme.refresh_from_db()
+        self.assertEqual(self.theme.summary, "Sacrifica criaturas por valor.")
+        self.assertEqual(self.theme.summary_model, "modelo-teste")
+        self.assertIsNotNone(self.theme.summary_generated_at)
+
+    def test_llm_error_returns_none_and_saves_nothing(self):
+        with mock.patch(GENERATE, side_effect=LlmError("cota")):
+            self.assertIsNone(EnsureThemeSummaryUseCase().execute(self.theme))
+
+        self.theme.refresh_from_db()
+        self.assertEqual(self.theme.summary, "")
+        self.assertIsNone(self.theme.summary_generated_at)
+
+    def test_empty_llm_response_returns_none(self):
+        with mock.patch(GENERATE, return_value="   "):
+            self.assertIsNone(EnsureThemeSummaryUseCase().execute(self.theme))
+
+        self.theme.refresh_from_db()
+        self.assertEqual(self.theme.summary, "")
+
+    def test_clean_summary_strips_noise(self):
+        self.assertEqual(
+            clean_summary('"Resumo: Sacrifica criaturas\npor valor."'),
+            "Sacrifica criaturas por valor.",
+        )
+        self.assertEqual(
+            clean_summary("“Sacrifica criaturas por valor.”"),
+            "Sacrifica criaturas por valor.",
+        )
+
+    def test_clean_summary_truncates_on_word_boundary(self):
+        words = ["palavra"] * 30  # 239 caracteres
+        raw = " ".join(words)
+
+        cleaned = clean_summary(raw)
+
+        self.assertLessEqual(len(cleaned), 120)
+        self.assertTrue(cleaned.endswith("…"))
+        self.assertTrue(all(w == "palavra" for w in cleaned[:-1].split(" ")))
+
+    def test_prompt_is_grounded(self):
+        prompt = build_summary_prompt(self.theme)
+
+        self.assertIn("Aristocrats", prompt)
+        for name in ("Teysa Karlov", "Sephiroth, Fabled SOLDIER", "Meren of Clan Nel Toth"):
+            self.assertIn(name, prompt)
+        self.assertIn("120", prompt)
+        self.assertIn("português", prompt)

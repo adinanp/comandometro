@@ -42,6 +42,12 @@ if RENDER_EXTERNAL_HOSTNAME:
 
 ADMIN_URL = env("ADMIN_URL", default="pod-admin/")
 
+# Resumos de tema do sorteio (Gemini). Sem a key, o app segue sem resumos.
+# É uma API key do projeto Google Cloud (Generative Language API), não o
+# client OAuth do login.
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-3.5-flash-lite")
+
 # Desativado por padrão: o CRUD do próprio app substitui o Admin no dia a
 # dia. Religar é só trocar essa env var, sem precisar de novo código.
 ADMIN_ENABLED = env.bool("ADMIN_ENABLED", default=False)
