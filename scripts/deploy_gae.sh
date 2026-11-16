@@ -14,29 +14,29 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-set -o allexport
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +o allexport
-export DJANGO_SETTINGS_MODULE=config.settings.production
-
-# secrets.yaml é incluído pelo app.yaml. json.dumps gera strings que também
-# são YAML válido, então valores com ":" ou "#" não quebram o arquivo.
-python - "$ENV_FILE" <<'PY'
-import json, sys
+# Lido em Python, não com `source`: a URL do Neon tem "&", que o bash
+# trataria como "rode em background". O Python grava o secrets.yaml (incluído
+# pelo app.yaml) e devolve os exports já escapados pro shell. json.dumps gera
+# strings que também são YAML válido.
+exports="$(python - "$ENV_FILE" <<'PY'
+import json, shlex, sys
 from pathlib import Path
 
-lines = ["env_variables:"]
+yaml_lines = ["env_variables:"]
 for raw in Path(sys.argv[1]).read_text().splitlines():
     line = raw.strip()
     if not line or line.startswith("#") or "=" not in line:
         continue
     key, value = line.split("=", 1)
-    value = value.strip().strip('"').strip("'")
+    key, value = key.strip(), value.strip().strip('"').strip("'")
+    print(f"export {key}={shlex.quote(value)}")
     if value:
-        lines.append(f"  {key.strip()}: {json.dumps(value)}")
-Path("secrets.yaml").write_text("\n".join(lines) + "\n")
+        yaml_lines.append(f"  {key}: {json.dumps(value)}")
+Path("secrets.yaml").write_text("\n".join(yaml_lines) + "\n")
 PY
+)"
+eval "$exports"
+export DJANGO_SETTINGS_MODULE=config.settings.production
 
 python manage.py check --deploy
 python manage.py collectstatic --noinput --clear
