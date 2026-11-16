@@ -5,7 +5,7 @@ from unittest import mock
 from django.test import TestCase, override_settings
 
 from apps.cards.edhrec import EdhrecError, ThemeListing
-from apps.cards.llm import LlmError
+from apps.cards.llm import LlmError, generate_text
 from apps.cards.models import Theme
 from apps.cards.use_cases import (
     EnsureThemeSummaryUseCase,
@@ -261,7 +261,7 @@ class ThemeSummaryTests(TestCase):
         self.assertIn("Aristocrats", prompt)
         for name in ("Teysa Karlov", "Sephiroth, Fabled SOLDIER", "Meren of Clan Nel Toth"):
             self.assertIn(name, prompt)
-        self.assertIn("120", prompt)
+        self.assertIn("100", prompt)
         self.assertIn("português", prompt)
 
 
@@ -300,3 +300,15 @@ class ThemeEdhrecUrlTests(TestCase):
             Theme(slug="plus-1-plus-1-counters").edhrec_url,
             "https://edhrec.com/tags/plus-1-plus-1-counters",
         )
+
+
+class GenerateTextTests(TestCase):
+    def test_default_deadline_meets_gemini_minimum(self):
+        # A API do Gemini recusa (400) prazos abaixo de 10 s.
+        with mock.patch("apps.cards.llm.genai.Client") as client_cls:
+            client_cls.return_value.models.generate_content.return_value.text = "ok"
+
+            generate_text("p", model="m", api_key="k")
+
+        http_options = client_cls.call_args.kwargs["http_options"]
+        self.assertGreaterEqual(http_options.timeout, 10_000)

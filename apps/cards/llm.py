@@ -11,11 +11,17 @@ class LlmError(Exception):
     pass
 
 
-def generate_text(prompt, *, model, api_key, timeout_s=8.0):
+# A API do Gemini recusa (400 INVALID_ARGUMENT) prazos abaixo de 10 s.
+MIN_TIMEOUT_S = 10.0
+
+
+def generate_text(prompt, *, model, api_key, timeout_s=MIN_TIMEOUT_S):
     try:
         client = genai.Client(
             api_key=api_key,
-            http_options=types.HttpOptions(timeout=int(timeout_s * 1000)),
+            http_options=types.HttpOptions(
+                timeout=int(max(timeout_s, MIN_TIMEOUT_S) * 1000)
+            ),
         )
         response = client.models.generate_content(model=model, contents=prompt)
         return response.text or ""
