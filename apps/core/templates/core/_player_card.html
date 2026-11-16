@@ -66,10 +66,14 @@ active_window (para o ⟳ voltar com o mesmo filtro).
       </form>
     </div>
     {% if theme.art_crop_url %}
-    <img src="{{ theme.art_crop_url }}" alt="" class="mt-3 w-full h-28 object-cover" loading="lazy">
+    <a href="{{ theme.edhrec_url }}" target="_blank" rel="noopener" class="block mt-3" title="Ver o tema no EDHREC">
+      <img src="{{ theme.art_crop_url }}" alt="" class="w-full aspect-video object-cover object-[50%_30%]" loading="lazy">
+    </a>
     {% endif %}
     <div class="p-4 space-y-1">
-      <p class="text-lg font-black uppercase tracking-wide text-gray-900">{{ theme.name }}</p>
+      <p class="text-lg font-black uppercase tracking-wide text-gray-900">
+        <a href="{{ theme.edhrec_url }}" target="_blank" rel="noopener" class="hover:underline" title="Ver o tema no EDHREC">{{ theme.name }} <span class="text-xs font-semibold normal-case text-gray-400">EDHREC ↗</span></a>
+      </p>
       <p class="text-xs text-gray-400">{{ theme.display_num_decks }}</p>
       {% if theme.top_commander_names %}
       <p class="text-xs text-gray-500">{{ theme.top_commander_names|join:" · " }}</p>
