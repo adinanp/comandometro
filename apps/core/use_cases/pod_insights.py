@@ -1,4 +1,5 @@
-from django.db.models import Count
+from django.db.models import Case, Count, IntegerField, Q, Sum, Value, When
+from django.db.models.functions import Coalesce
 from django.db.models.functions import TruncMonth
 
 from apps.core.models import Deck, Game, GameParticipant, Player, wincon_label
@@ -29,14 +30,10 @@ class PodInsightsUseCase(BaseUseCase):
         são combinações válidas aqui, não um caso à parte.
         """
         buckets = {}
-        for deck in Deck.objects.filter(player__pod=pod):
-            performances = deck.match_performances.all()
-            if since:
-                performances = performances.filter(game__date__gte=since)
-            games = performances.count()
+        for deck in self._decks_with_totals(pod, since):
+            games, wins = deck.games_count, deck.wins_count
             if games == 0:
                 continue
-            wins = performances.filter(placement=1).count()
             identity = deck.color_identity or "C"
             bucket = buckets.setdefault(identity, {"games": 0, "wins": 0})
             bucket["games"] += games
@@ -55,6 +52,23 @@ class PodInsightsUseCase(BaseUseCase):
             )
         stats.sort(key=lambda row: (-row["win_rate"], -row["games"]))
         return self._pad(stats[:5], 5)
+
+    def _decks_with_totals(self, pod, since):
+        """
+        Decks do pod com partidas e vitórias já contadas pelo banco, numa
+        query só. O banco fica em outra nuvem (app no App Engine, Postgres no
+        Neon/AWS), então contar por deck custava 2 queries de ~30ms cada.
+        """
+        played = Q()
+        if since:
+            played = Q(match_performances__game__date__gte=since)
+        return Deck.objects.filter(player__pod=pod).select_related("player").annotate(
+            games_count=Count("match_performances", filter=played),
+            wins_count=Count(
+                "match_performances",
+                filter=played & Q(match_performances__placement=1),
+            ),
+        )
 
     def _pad(self, rows, size):
         """Completa com linhas vazias (`{"empty": True}`) até `size` — ver
@@ -77,15 +91,21 @@ class PodInsightsUseCase(BaseUseCase):
         return rows
 
     def _points_ranking(self, pod, since):
-        ranking = []
-        for player in Player.objects.filter(pod=pod):
-            performances = player.match_performances.all()
-            if since:
-                performances = performances.filter(game__date__gte=since)
-            points = sum(
-                POINTS_BY_PLACEMENT.get(p.placement, 0) for p in performances
-            )
-            ranking.append({"player": player, "points": points})
+        placement_points = Case(
+            *(
+                When(match_performances__placement=placement, then=Value(points))
+                for placement, points in POINTS_BY_PLACEMENT.items()
+            ),
+            default=Value(0),
+            output_field=IntegerField(),
+        )
+        played = Q()
+        if since:
+            played = Q(match_performances__game__date__gte=since)
+        players = Player.objects.filter(pod=pod).annotate(
+            points=Coalesce(Sum(placement_points, filter=played), Value(0))
+        )
+        ranking = [{"player": player, "points": player.points} for player in players]
         ranking.sort(key=lambda row: row["points"], reverse=True)
         return ranking
 
@@ -96,14 +116,10 @@ class PodInsightsUseCase(BaseUseCase):
         evita que um deck jogado 1 vez com 100% WR pareça "o melhor do pod".
         """
         rows = []
-        for deck in Deck.objects.filter(player__pod=pod).select_related("player"):
-            performances = deck.match_performances.all()
-            if since:
-                performances = performances.filter(game__date__gte=since)
-            games = performances.count()
+        for deck in self._decks_with_totals(pod, since):
+            games, wins = deck.games_count, deck.wins_count
             if games < MIN_COMMANDER_GAMES:
                 continue
-            wins = performances.filter(placement=1).count()
             win_rate = round((wins / games * 100), 1)
             rows.append(
                 {
