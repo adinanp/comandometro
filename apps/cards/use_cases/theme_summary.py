@@ -10,6 +10,8 @@ from apps.core.use_cases.base import BaseUseCase
 logger = logging.getLogger(__name__)
 
 SUMMARY_MAX_CHARS = 120
+# O modelo costuma passar um pouco do pedido; pedir menos evita o corte com "…".
+SUMMARY_TARGET_CHARS = 100
 _QUOTES = "\"'“”‘’«»"
 _PREFIX = re.compile(r"^(resumo|summary)\s*:\s*", re.IGNORECASE)
 _MARKDOWN = re.compile(r"[*_`#]+")
@@ -22,7 +24,7 @@ def build_summary_prompt(theme):
         f"Comandantes mais populares do tema: {commanders}.\n\n"
         "Escreva em português do Brasil UMA frase explicando como esse tema "
         "joga e como costuma vencer, para um jogador de Magic que não conhece "
-        f"o tema. No máximo {SUMMARY_MAX_CHARS} caracteres. Mantenha nomes de "
+        f"o tema. No máximo {SUMMARY_TARGET_CHARS} caracteres. Mantenha nomes de "
         "cartas em inglês e cite apenas cartas da lista acima, se citar. "
         "Responda só com a frase, sem aspas e sem prefixo."
     )
@@ -63,8 +65,8 @@ class EnsureThemeSummaryUseCase(BaseUseCase):
                 model=settings.GEMINI_MODEL,
                 api_key=settings.GEMINI_API_KEY,
             )
-        except LlmError:
-            logger.warning("Falha ao gerar resumo do tema %s", theme.slug)
+        except LlmError as exc:
+            logger.warning("Falha ao gerar resumo do tema %s: %s", theme.slug, exc)
             return None
 
         summary = clean_summary(raw)
