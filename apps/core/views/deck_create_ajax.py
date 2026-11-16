@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.views import View
+from apps.cards.use_cases.commander_themes import ensure_deck_commander_themes
 from apps.core.forms import DeckForm
 from apps.pods.mixins import PodMemberRequiredMixin
 
@@ -15,6 +16,7 @@ class DeckCreateAjaxView(PodMemberRequiredMixin, View):
         form = DeckForm(request.POST, pod=self.pod, prefix="new_deck")
         if form.is_valid():
             deck = form.save()
+            ensure_deck_commander_themes(deck)
             return JsonResponse({"id": deck.id, "name": str(deck)})
 
         errors = []

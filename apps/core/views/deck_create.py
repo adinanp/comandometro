@@ -1,5 +1,6 @@
 from django.urls import reverse
 from django.views.generic.edit import CreateView
+from apps.cards.use_cases.commander_themes import ensure_deck_commander_themes
 from apps.core.forms import DeckForm
 from apps.pods.mixins import PodMemberRequiredMixin
 
@@ -19,6 +20,11 @@ class DeckCreateView(PodMemberRequiredMixin, CreateView):
         if player_id:
             initial["player"] = player_id
         return initial
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        ensure_deck_commander_themes(self.object)
+        return response
 
     def get_success_url(self):
         return reverse(
