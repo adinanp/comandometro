@@ -4,8 +4,9 @@ from unittest import mock
 
 from django.test import TestCase
 
+from apps.cards.edhrec import EdhrecError, ThemeListing
 from apps.cards.models import Theme
-from apps.cards.use_cases import ResolveCommanderArtUseCase
+from apps.cards.use_cases import ResolveCommanderArtUseCase, SyncEdhrecThemesUseCase
 
 
 class ThemeModelTests(TestCase):
@@ -79,3 +80,94 @@ class CommanderArtTests(TestCase):
     def test_network_error_returns_none(self):
         with mock.patch(URLOPEN, side_effect=urllib.error.URLError("down")):
             self.assertIsNone(ResolveCommanderArtUseCase().execute("Teysa Karlov"))
+
+
+class _FakeEdhrecClient:
+    def __init__(self, themes, commanders, failing=()):
+        self.themes = themes
+        self.commanders = commanders
+        self.failing = set(failing)
+        self.detail_calls = []
+
+    def list_themes(self):
+        return self.themes
+
+    def top_commanders(self, slug, limit=10):
+        self.detail_calls.append(slug)
+        if slug in self.failing:
+            raise EdhrecError(f"falhou {slug}")
+        return self.commanders.get(slug, [])
+
+
+ART = "apps.cards.use_cases.sync_themes.ResolveCommanderArtUseCase.perform_request"
+
+
+class SyncThemesTests(TestCase):
+    def setUp(self):
+        self.listing = [
+            ThemeListing("voltron", "Voltron", 62437, 1),
+            ThemeListing("elves", "Elves", 15700, 2),
+        ]
+        self.commanders = {
+            "voltron": [{"name": "Cloud, Ex-SOLDIER", "num_decks": 1897}],
+            "elves": [{"name": "Lathril, Blade of the Elves", "num_decks": 3676}],
+        }
+
+    def _sync(self, client, **kwargs):
+        with mock.patch(ART, return_value="https://x/art.jpg"):
+            return SyncEdhrecThemesUseCase().execute(client=client, delay=0, **kwargs)
+
+    def test_upserts_catalog_and_details(self):
+        result = self._sync(_FakeEdhrecClient(self.listing, self.commanders))
+
+        self.assertEqual(result, {"themes": 2, "ok": 2, "failed": []})
+        voltron = Theme.objects.get(slug="voltron")
+        self.assertEqual(voltron.name, "Voltron")
+        self.assertEqual(voltron.num_decks, 62437)
+        self.assertEqual(voltron.popularity_rank, 1)
+        self.assertEqual(voltron.top_commander_names(), ["Cloud, Ex-SOLDIER"])
+        self.assertEqual(voltron.art_crop_url, "https://x/art.jpg")
+        self.assertIsNotNone(voltron.edhrec_synced_at)
+
+        self.listing[0] = ThemeListing("voltron", "Voltron", 70000, 1)
+        self._sync(_FakeEdhrecClient(self.listing, self.commanders))
+        self.assertEqual(Theme.objects.count(), 2)
+        self.assertEqual(Theme.objects.get(slug="voltron").num_decks, 70000)
+
+    def test_failed_detail_is_reported_and_others_continue(self):
+        Theme.objects.create(
+            slug="voltron", name="Voltron", top_commanders=[{"name": "Old", "num_decks": 1}]
+        )
+
+        result = self._sync(
+            _FakeEdhrecClient(self.listing, self.commanders, failing={"voltron"})
+        )
+
+        self.assertEqual(result["failed"], ["voltron"])
+        self.assertEqual(result["ok"], 1)
+        self.assertEqual(Theme.objects.get(slug="voltron").top_commander_names(), ["Old"])
+        self.assertEqual(
+            Theme.objects.get(slug="elves").top_commander_names(),
+            ["Lathril, Blade of the Elves"],
+        )
+
+    def test_theme_missing_from_catalog_is_kept(self):
+        Theme.objects.create(slug="loci", name="Loci")
+
+        self._sync(_FakeEdhrecClient(self.listing, self.commanders))
+
+        self.assertTrue(Theme.objects.filter(slug="loci").exists())
+
+    def test_only_syncs_single_slug_details(self):
+        client = _FakeEdhrecClient(self.listing, self.commanders)
+
+        self._sync(client, only="voltron")
+
+        self.assertEqual(client.detail_calls, ["voltron"])
+
+    def test_does_not_touch_summary(self):
+        Theme.objects.create(slug="voltron", name="Voltron", summary="Já existe.")
+
+        self._sync(_FakeEdhrecClient(self.listing, self.commanders))
+
+        self.assertEqual(Theme.objects.get(slug="voltron").summary, "Já existe.")
