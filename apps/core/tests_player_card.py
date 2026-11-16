@@ -434,3 +434,26 @@ class PlayerPodCardForeignDeckTests(PlayerCardFixtureMixin, TestCase):
 
         self.assertEqual(card["comfort_deck"]["deck"], borrowed)
         self.assertEqual(card["comfort_deck"]["share"], 100.0)
+
+
+class PlayerCardThemeLinkTests(PlayerCardFixtureMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        Theme.objects.create(
+            slug="aristocrats",
+            name="Aristocrats",
+            art_crop_url="https://cards.scryfall.io/art_crop/x.jpg",
+        )
+        self.dashboard = reverse("core:dashboard", kwargs={"pod_slug": self.pod.slug})
+
+    def test_theme_name_links_to_edhrec(self):
+        response = self.client.get(self.dashboard)
+
+        self.assertContains(response, 'href="https://edhrec.com/tags/aristocrats"')
+        self.assertContains(response, 'target="_blank" rel="noopener"')
+
+    def test_theme_art_uses_same_framing_as_draw_cards(self):
+        # Mesmo enquadramento dos cards do sorteio: 16:9, foco um pouco acima do centro.
+        response = self.client.get(self.dashboard)
+
+        self.assertContains(response, "aspect-video object-cover object-[50%_30%]")
