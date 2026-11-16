@@ -1,6 +1,5 @@
 import io
 import logging
-import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, wait
 from functools import lru_cache
@@ -96,8 +95,8 @@ def _download_all(urls):
     for future in done:
         try:
             results[futures[future]] = future.result()
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError):
-            logger.warning("Não foi possível baixar a arte %s", futures[future])
+        except Exception:  # arte é opcional: qualquer falha vira o bloco neutro
+            logger.warning("Não foi possível baixar a arte %s", futures[future], exc_info=True)
     executor.shutdown(wait=False, cancel_futures=True)
     return results
 

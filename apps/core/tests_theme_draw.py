@@ -1,3 +1,4 @@
+import http.client
 import io
 import urllib.error
 from datetime import datetime, timedelta
@@ -374,3 +375,20 @@ class ThemeDrawRecapTests(ThemeDrawViewMixin, TestCase):
             outsider = get_user_model().objects.create_user(username="ze", password="x")
             self.client.force_login(outsider)
             self.assertEqual(self.client.get(self._recap_url(draw)).status_code, 404)
+
+
+class ThemeDrawRecapRobustnessTests(ThemeDrawViewMixin, TestCase):
+    def test_truncated_art_download_falls_back_to_placeholder(self):
+        draw = self._draw()
+        Theme.objects.update(art_crop_url="https://x/art.jpg")
+
+        def truncated(*args, **kwargs):
+            response = mock.MagicMock()
+            response.__enter__.return_value = response
+            response.read.side_effect = http.client.IncompleteRead(b"\xff\xd8")
+            return response
+
+        with mock.patch(RECAP_URLOPEN, side_effect=truncated):
+            png = ThemeDrawRecapUseCase().execute(draw)
+
+        self.assertEqual(Image.open(io.BytesIO(png)).size, (1080, 1350))

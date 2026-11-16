@@ -263,3 +263,21 @@ class ThemeSummaryTests(TestCase):
             self.assertIn(name, prompt)
         self.assertIn("120", prompt)
         self.assertIn("português", prompt)
+
+
+class SyncThemesRobustnessTests(SyncThemesTests):
+    def test_unexpected_error_in_one_theme_does_not_abort_sync(self):
+        client = _FakeEdhrecClient(self.listing, self.commanders)
+        original = client.top_commanders
+
+        def flaky(slug, limit=10):
+            if slug == "voltron":
+                raise KeyError("name")
+            return original(slug, limit)
+
+        client.top_commanders = flaky
+
+        result = self._sync(client)
+
+        self.assertEqual(result["failed"], ["voltron"])
+        self.assertEqual(result["ok"], 1)

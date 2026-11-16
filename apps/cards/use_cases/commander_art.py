@@ -1,6 +1,6 @@
+import http.client
 import json
 import logging
-import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -27,7 +27,7 @@ class ResolveCommanderArtUseCase(BaseUseCase):
         try:
             with urllib.request.urlopen(req, timeout=5) as response:
                 card = json.loads(response.read().decode("utf-8"))
-        except (urllib.error.URLError, TimeoutError, ValueError):
+        except (OSError, http.client.HTTPException, ValueError):
             logger.warning("Não foi possível buscar a arte de %s no Scryfall", name)
             return None
 
