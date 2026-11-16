@@ -128,7 +128,7 @@ class SyncThemesTests(TestCase):
     def test_upserts_catalog_and_details(self):
         result = self._sync(_FakeEdhrecClient(self.listing, self.commanders))
 
-        self.assertEqual(result, {"themes": 2, "ok": 2, "failed": []})
+        self.assertEqual(result, {"themes": 2, "ok": 2, "failed": [], "commanders": 0})
         voltron = Theme.objects.get(slug="voltron")
         self.assertEqual(voltron.name, "Voltron")
         self.assertEqual(voltron.num_decks, 62437)
@@ -372,3 +372,56 @@ class EnsureCommanderThemesTests(TestCase):
         self.assertIsNone(self.atraxa.edhrec_themes_synced_at)
         self.teysa.refresh_from_db()
         self.assertEqual(self.teysa.edhrec_theme_slugs, ["aristocrats"])
+
+
+ENSURE_COMMANDERS = (
+    "apps.cards.use_cases.sync_themes.EnsureCommanderThemesUseCase.perform_request"
+)
+
+
+class SyncCommanderThemesTests(SyncThemesTests):
+    def _deck(self, pod_name, *commanders):
+        from apps.core.models import Deck, Player
+        from apps.pods.models import Pod
+
+        pod = Pod.objects.create(name=pod_name)
+        player = Player.objects.create(pod=pod, name=f"Jogador {pod_name}")
+        deck = Deck.objects.create(player=player)
+        deck.commanders.set(commanders)
+        return deck
+
+    def _commander(self, name):
+        return Card.objects.create(name=name, is_commander_eligible=True)
+
+    def test_sync_ensures_themes_of_deck_commanders(self):
+        a, b, c = (self._commander(n) for n in ("A", "B", "C"))
+        self._commander("Fora de deck")
+        self._deck("Pod 1", a, b)
+        self._deck("Pod 2", c)
+
+        with mock.patch(ENSURE_COMMANDERS, return_value=3) as ensure:
+            result = self._sync(_FakeEdhrecClient(self.listing, self.commanders))
+
+        self.assertEqual(ensure.call_count, 1)
+        cards = list(ensure.call_args.args[0])
+        self.assertCountEqual([card.name for card in cards], ["A", "B", "C"])
+        self.assertFalse(ensure.call_args.kwargs["refresh"])
+        self.assertEqual(result["commanders"], 3)
+
+    def test_refresh_commanders_flag(self):
+        self._deck("Pod 1", self._commander("A"))
+
+        with mock.patch(ENSURE_COMMANDERS, return_value=1) as ensure:
+            self._sync(
+                _FakeEdhrecClient(self.listing, self.commanders), refresh_commanders=True
+            )
+
+        self.assertTrue(ensure.call_args.kwargs["refresh"])
+
+    def test_only_skips_commander_step(self):
+        self._deck("Pod 1", self._commander("A"))
+
+        with mock.patch(ENSURE_COMMANDERS) as ensure:
+            self._sync(_FakeEdhrecClient(self.listing, self.commanders), only="voltron")
+
+        ensure.assert_not_called()
