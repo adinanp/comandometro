@@ -52,4 +52,25 @@ sys.exit(0 if Card.objects.exists() else 1)
 " || python manage.py import_mtgjson
 fi
 
-gcloud app deploy app.yaml
+# O upload às vezes falha com erro 13 "Failed to copy file ... to Blobstore".
+# Os arquivos já ficam no bucket de staging, então uma segunda tentativa
+# passa. Só repete nesse caso: outras falhas param o script.
+if ! gcloud app deploy app.yaml; then
+  last_op="$(gcloud app operations list --limit=1 --sort-by=~startTime --format=json)"
+  if grep -q "to Blobstore" <<<"$last_op"; then
+    echo "Erro de cópia pro Blobstore, tentando o deploy de novo..." >&2
+    gcloud app deploy app.yaml --quiet
+  else
+    exit 1
+  fi
+fi
+
+# Cada deploy cria uma versão nova e a anterior continua de pé com 0% de
+# tráfego, segurando a própria instância por causa do min_instances. Duas
+# instâncias F1 estouram as 28h/dia grátis, então apaga as que sobraram.
+old_versions="$(gcloud app versions list --service=default \
+  --filter="traffic_split=0" --format="value(version.id)")"
+if [[ -n "$old_versions" ]]; then
+  # shellcheck disable=SC2086
+  gcloud app versions delete --service=default --quiet $old_versions
+fi
