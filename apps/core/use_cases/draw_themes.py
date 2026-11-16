@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from apps.cards.models import Theme
 from apps.core.models import ThemeDraw, ThemeDrawSeat
+from apps.pods.models import Pod
 
 from .base import BaseUseCase
 
@@ -45,18 +46,23 @@ class DrawThemesUseCase(BaseUseCase):
         if any(player.pod_id != pod.id for player in players):
             raise ValidationError("Todos os jogadores precisam ser deste pod.")
 
-        all_ids = list(Theme.objects.values_list("id", flat=True))
-        if len(all_ids) < PLAYERS_PER_DRAW:
-            raise ValidationError("O catálogo de temas ainda não foi carregado.")
-
-        eligible = list(self.eligible_themes(pod).values_list("id", flat=True))
-        if len(eligible) >= PLAYERS_PER_DRAW:
-            theme_ids = random.sample(eligible, PLAYERS_PER_DRAW)
-        else:
-            rest = [i for i in all_ids if i not in set(eligible)]
-            theme_ids = eligible + random.sample(rest, PLAYERS_PER_DRAW - len(eligible))
-
         with transaction.atomic():
+            # Trava o pod: dois sorteios simultâneos esperam um pelo outro e o
+            # segundo já enxerga os temas que o primeiro acabou de usar.
+            Pod.objects.select_for_update().filter(pk=pod.pk).first()
+
+            all_ids = list(Theme.objects.values_list("id", flat=True))
+            if len(all_ids) < PLAYERS_PER_DRAW:
+                raise ValidationError("O catálogo de temas ainda não foi carregado.")
+
+            eligible = list(self.eligible_themes(pod).values_list("id", flat=True))
+            if len(eligible) >= PLAYERS_PER_DRAW:
+                theme_ids = random.sample(eligible, PLAYERS_PER_DRAW)
+            else:
+                eligible_set = set(eligible)
+                rest = [i for i in all_ids if i not in eligible_set]
+                theme_ids = eligible + random.sample(rest, PLAYERS_PER_DRAW - len(eligible))
+
             draw = ThemeDraw.objects.create(pod=pod, created_by=created_by)
             for position, (player, theme_id) in enumerate(zip(players, theme_ids)):
                 seat = ThemeDrawSeat(

@@ -38,11 +38,11 @@ ELLIPSIS = "…"
 
 @lru_cache(maxsize=None)
 def load_font(kind, size):
-    """kind: "display" (Archivo Black), "body" ou "body-bold" (Inter)."""
+    """kind: "display" (Archivo Black) ou "body" (Inter Regular)."""
     if kind == "display":
         return ImageFont.truetype(str(FONTS_DIR / "ArchivoBlack-Regular.ttf"), size)
     font = ImageFont.truetype(str(FONTS_DIR / "Inter-Variable.ttf"), size)
-    font.set_variation_by_name("SemiBold" if kind == "body-bold" else "Regular")
+    font.set_variation_by_name("Regular")
     return font
 
 
@@ -76,6 +76,12 @@ def fit_text(canvas, text, font, max_width, max_lines):
         if canvas.textlength(line, font=font) > max_width or (is_last and overflow):
             lines[index] = _ellipsize(canvas, line, font, max_width)
     return lines
+
+
+def fit_line(canvas, text, font, max_width):
+    """Uma linha só, cortada com "…" se precisar; "" se não houver texto."""
+    lines = fit_text(canvas, text, font, max_width, 1)
+    return lines[0] if lines else ""
 
 
 def _download_art(url):
@@ -140,8 +146,8 @@ class ThemeDrawRecapUseCase(BaseUseCase):
 
         pod_font = load_font("display", 22)
         max_width = WIDTH - 2 * MARGIN
-        pod_line = fit_text(canvas, pod_name.upper(), pod_font, max_width, 1)
-        canvas.text((MARGIN, 45 + (bottom - top) + 2 * pad_y + 20), pod_line[0] if pod_line else "", font=pod_font, fill=ACCENT)
+        pod_line = fit_line(canvas, pod_name.upper(), pod_font, max_width)
+        canvas.text((MARGIN, 45 + (bottom - top) + 2 * pad_y + 20), pod_line, font=pod_font, fill=ACCENT)
 
     def _draw_row(self, image, canvas, top, seat, art):
         left, right = MARGIN, WIDTH - MARGIN
@@ -161,19 +167,19 @@ class ThemeDrawRecapUseCase(BaseUseCase):
         canvas.text((right - TEXT_PADDING, top + 30), decks, font=decks_font, fill=MUTED, anchor="ra")
 
         player_font = load_font("display", 32)
-        player = fit_text(canvas, str(seat.player), player_font, text_width - decks_width - 20, 1)
-        canvas.text((x, top + 22), player[0] if player else "", font=player_font, fill=WHITE)
+        player = fit_line(canvas, str(seat.player), player_font, text_width - decks_width - 20)
+        canvas.text((x, top + 22), player, font=player_font, fill=WHITE)
 
         theme_font = load_font("display", 25)
-        theme_line = fit_text(canvas, theme.name.upper(), theme_font, text_width, 1)
-        canvas.text((x, top + 72), theme_line[0], font=theme_font, fill=THEME_COLOR)
+        theme_line = fit_line(canvas, theme.name.upper(), theme_font, text_width)
+        canvas.text((x, top + 72), theme_line, font=theme_font, fill=THEME_COLOR)
 
         y = top + 115
         commanders = theme.top_commander_names(limit=1)
-        if commanders:
+        if commanders and commanders[0]:
             commander_font = load_font("body", 19)
-            line = fit_text(canvas, f"Top comandante: {commanders[0]}", commander_font, text_width, 1)
-            canvas.text((x, y), line[0], font=commander_font, fill=COMMANDER_COLOR)
+            line = fit_line(canvas, f"Top comandante: {commanders[0]}", commander_font, text_width)
+            canvas.text((x, y), line, font=commander_font, fill=COMMANDER_COLOR)
             y += 38
 
         if theme.summary:

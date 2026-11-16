@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 SUMMARY_MAX_CHARS = 120
 _QUOTES = "\"'“”‘’«»"
 _PREFIX = re.compile(r"^(resumo|summary)\s*:\s*", re.IGNORECASE)
+_MARKDOWN = re.compile(r"[*_`#]+")
 
 
 def build_summary_prompt(theme):
@@ -28,7 +29,12 @@ def build_summary_prompt(theme):
 
 
 def clean_summary(raw, max_chars=SUMMARY_MAX_CHARS):
-    text = " ".join(raw.split()).strip(_QUOTES + " ")
+    # Só o primeiro parágrafo: depois de uma linha em branco costuma vir
+    # nota/explicação. Quebras simples dentro do parágrafo viram espaço.
+    paragraphs = [p for p in re.split(r"\n\s*\n", raw) if p.strip()]
+    first = paragraphs[0] if paragraphs else ""
+    text = _MARKDOWN.sub("", " ".join(first.split()))
+    text = text.strip(_QUOTES + " ")
     text = _PREFIX.sub("", text).strip(_QUOTES + " ")
     if len(text) <= max_chars:
         return text
