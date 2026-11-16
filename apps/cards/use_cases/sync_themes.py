@@ -4,10 +4,11 @@ import time
 from django.utils import timezone
 
 from apps.cards.edhrec import EdhrecThemeClient
-from apps.cards.models import Theme
+from apps.cards.models import Card, Theme
 from apps.core.use_cases.base import BaseUseCase
 
 from .commander_art import ResolveCommanderArtUseCase
+from .commander_themes import EnsureCommanderThemesUseCase
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class SyncEdhrecThemesUseCase(BaseUseCase):
     `summary` — resumos nascem no primeiro sorteio.
     """
 
-    def perform_request(self, client=None, only=None, delay=0.2):
+    def perform_request(self, client=None, only=None, delay=0.2, refresh_commanders=False):
         client = client or EdhrecThemeClient()
         listings = client.list_themes()
 
@@ -51,7 +52,18 @@ class SyncEdhrecThemesUseCase(BaseUseCase):
             self._save_details(Theme.objects.get(slug=slug), commanders)
             ok += 1
 
-        return {"themes": len(listings), "ok": ok, "failed": failed}
+        commanders = 0
+        if only is None:
+            # Temas de cada comandante usado em algum deck (zona de conforto do
+            # Tema da Semana). Sem refresh, só os que ainda não têm dados.
+            commanders = EnsureCommanderThemesUseCase().execute(
+                Card.objects.filter(decks_as_commander__isnull=False).distinct(),
+                client=client,
+                refresh=refresh_commanders,
+                delay=delay,
+            )
+
+        return {"themes": len(listings), "ok": ok, "failed": failed, "commanders": commanders}
 
     def _save_details(self, theme, commanders):
         previous_top = theme.top_commander_names(limit=1)
