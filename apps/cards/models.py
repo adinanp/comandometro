@@ -53,6 +53,12 @@ class Card(models.Model):
         help_text="Oracle ID do Scryfall (compartilhado entre reimpressões)",
     )
     image_url = models.URLField(blank=True)
+    edhrec_theme_slugs = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Temas principais do comandante no EDHREC (slugs de Theme), em ordem",
+    )
+    edhrec_themes_synced_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

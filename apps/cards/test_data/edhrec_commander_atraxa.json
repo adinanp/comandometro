@@ -1,0 +1,41 @@
+{
+ "panels": {
+  "taglinks": [
+   {
+    "count": 3469,
+    "slug": "infect",
+    "value": "Infect"
+   },
+   {
+    "count": 2153,
+    "slug": "plus-1-plus-1-counters",
+    "value": "+1/+1 Counters"
+   },
+   {
+    "count": 1749,
+    "slug": "planeswalkers",
+    "value": "Planeswalkers"
+   },
+   {
+    "count": 1513,
+    "slug": "proliferate",
+    "value": "Proliferate"
+   },
+   {
+    "count": 857,
+    "slug": "phyrexians",
+    "value": "Phyrexians"
+   },
+   {
+    "count": 339,
+    "slug": "minus-1-minus-1-counters",
+    "value": "-1/-1 Counters"
+   },
+   {
+    "count": 311,
+    "slug": "tokens",
+    "value": "Tokens"
+   }
+  ]
+ }
+}

@@ -3,11 +3,13 @@ import urllib.error
 from unittest import mock
 
 from django.test import TestCase, override_settings
+from django.utils import timezone
 
 from apps.cards.edhrec import EdhrecError, ThemeListing
 from apps.cards.llm import LlmError, generate_text
-from apps.cards.models import Theme
+from apps.cards.models import Card, Theme
 from apps.cards.use_cases import (
+    EnsureCommanderThemesUseCase,
     EnsureThemeSummaryUseCase,
     ResolveCommanderArtUseCase,
     SyncEdhrecThemesUseCase,
@@ -312,3 +314,61 @@ class GenerateTextTests(TestCase):
 
         http_options = client_cls.call_args.kwargs["http_options"]
         self.assertGreaterEqual(http_options.timeout, 10_000)
+
+
+class _FakeCommanderClient:
+    def __init__(self, themes=None, failing=()):
+        self.themes = themes or {}
+        self.failing = set(failing)
+        self.calls = []
+
+    def commander_theme_slugs(self, card_name, limit=5):
+        self.calls.append(card_name)
+        if card_name in self.failing:
+            raise EdhrecError("falhou")
+        return self.themes.get(card_name, [])
+
+
+class EnsureCommanderThemesTests(TestCase):
+    def setUp(self):
+        self.atraxa = Card.objects.create(name="Atraxa, Praetors' Voice", is_commander_eligible=True)
+        self.teysa = Card.objects.create(name="Teysa Karlov", is_commander_eligible=True)
+
+    def test_saves_slugs_and_timestamp(self):
+        client = _FakeCommanderClient({"Atraxa, Praetors' Voice": ["infect", "proliferate"]})
+
+        updated = EnsureCommanderThemesUseCase().execute([self.atraxa], client=client)
+
+        self.assertEqual(updated, 1)
+        self.atraxa.refresh_from_db()
+        self.assertEqual(self.atraxa.edhrec_theme_slugs, ["infect", "proliferate"])
+        self.assertIsNotNone(self.atraxa.edhrec_themes_synced_at)
+
+    def test_empty_result_still_marks_synced(self):
+        EnsureCommanderThemesUseCase().execute([self.teysa], client=_FakeCommanderClient())
+
+        self.teysa.refresh_from_db()
+        self.assertEqual(self.teysa.edhrec_theme_slugs, [])
+        self.assertIsNotNone(self.teysa.edhrec_themes_synced_at)
+
+    def test_skips_synced_cards_unless_refresh(self):
+        self.atraxa.edhrec_themes_synced_at = timezone.now()
+        self.atraxa.save()
+        client = _FakeCommanderClient()
+
+        EnsureCommanderThemesUseCase().execute([self.atraxa], client=client)
+        self.assertEqual(client.calls, [])
+
+        EnsureCommanderThemesUseCase().execute([self.atraxa], client=client, refresh=True)
+        self.assertEqual(client.calls, ["Atraxa, Praetors' Voice"])
+
+    def test_failure_in_one_card_does_not_stop_the_next(self):
+        client = _FakeCommanderClient({"Teysa Karlov": ["aristocrats"]}, failing={"Atraxa, Praetors' Voice"})
+
+        updated = EnsureCommanderThemesUseCase().execute([self.atraxa, self.teysa], client=client)
+
+        self.assertEqual(updated, 1)
+        self.atraxa.refresh_from_db()
+        self.assertIsNone(self.atraxa.edhrec_themes_synced_at)
+        self.teysa.refresh_from_db()
+        self.assertEqual(self.teysa.edhrec_theme_slugs, ["aristocrats"])

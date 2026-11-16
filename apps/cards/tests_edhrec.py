@@ -6,7 +6,12 @@ from unittest import mock
 
 from django.test import SimpleTestCase
 
-from apps.cards.edhrec import EdhrecError, EdhrecThemeClient, ThemeListing
+from apps.cards.edhrec import (
+    EdhrecError,
+    EdhrecThemeClient,
+    ThemeListing,
+    edhrec_commander_slug,
+)
 
 TEST_DATA = Path(__file__).parent / "test_data"
 
@@ -87,3 +92,47 @@ class EdhrecRobustnessTests(SimpleTestCase):
         commanders = EdhrecThemeClient.parse_top_commanders(payload, limit=10)
 
         self.assertEqual(commanders, [{"name": "Teysa Karlov", "num_decks": 2}])
+
+
+def _http_error(code):
+    return urllib.error.HTTPError("https://x", code, "err", {}, None)
+
+
+class CommanderThemesClientTests(SimpleTestCase):
+    def test_commander_slug(self):
+        self.assertEqual(edhrec_commander_slug("Atraxa, Praetors' Voice"), "atraxa-praetors-voice")
+        self.assertEqual(edhrec_commander_slug("Lim-Dûl the Necromancer"), "lim-dul-the-necromancer")
+        self.assertEqual(
+            edhrec_commander_slug("Esika, God of the Tree // The Prismatic Bridge"),
+            "esika-god-of-the-tree",
+        )
+        self.assertEqual(edhrec_commander_slug("Y'shtola, Night's Blessed"), "yshtola-nights-blessed")
+
+    def test_parse_commander_theme_slugs(self):
+        payload = _load("edhrec_commander_atraxa.json")
+
+        self.assertEqual(
+            EdhrecThemeClient.parse_commander_theme_slugs(payload, limit=5),
+            ["infect", "plus-1-plus-1-counters", "planeswalkers", "proliferate", "phyrexians"],
+        )
+
+    def test_parse_without_taglinks_returns_empty(self):
+        self.assertEqual(EdhrecThemeClient.parse_commander_theme_slugs({}, limit=5), [])
+        self.assertEqual(
+            EdhrecThemeClient.parse_commander_theme_slugs({"panels": {}}, limit=5), []
+        )
+
+    def test_missing_commander_page_returns_empty(self):
+        # O EDHREC responde 403 (não 404) para páginas inexistentes.
+        for code in (403, 404):
+            with self.subTest(code=code), mock.patch(
+                "apps.cards.edhrec.urllib.request.urlopen", side_effect=_http_error(code)
+            ):
+                self.assertEqual(EdhrecThemeClient().commander_theme_slugs("Nao Existe"), [])
+
+    def test_server_error_raises(self):
+        with mock.patch(
+            "apps.cards.edhrec.urllib.request.urlopen", side_effect=_http_error(500)
+        ):
+            with self.assertRaises(EdhrecError):
+                EdhrecThemeClient().commander_theme_slugs("Atraxa, Praetors' Voice")
