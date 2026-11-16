@@ -1,6 +1,6 @@
 from django.db.models import Count, F
 
-from apps.core.models import Game, Player
+from apps.core.models import Deck, Game, Player
 from apps.core.use_cases.base import BaseUseCase
 from apps.core.use_cases.player_stats import favorite_color_combo, favorite_wincon
 from apps.core.use_cases.pod_insights import POINTS_BY_PLACEMENT
@@ -78,7 +78,11 @@ class PlayerPodCardUseCase(BaseUseCase):
         )
         if not top or not games:
             return None
-        deck = player.decks.prefetch_related("commanders").get(pk=top["deck"])
+        # O deck pode ser de outro jogador (partida registrada pelo admin com
+        # deck emprestado): busca pelo id, não só entre os decks do jogador.
+        deck = Deck.objects.prefetch_related("commanders").filter(pk=top["deck"]).first()
+        if deck is None:
+            return None
         return {
             "deck": deck,
             "games": top["games"],
