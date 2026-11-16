@@ -1,0 +1,86 @@
+{% comment %}
+Card "Você no pod" do dashboard. Contexto: player_card (PlayerPodCardUseCase),
+weekly_theme ({theme, rerolls_left} ou None), weekly_theme_summary_url,
+active_window (para o ⟳ voltar com o mesmo filtro).
+{% endcomment %}
+<section class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+  <div class="p-4 space-y-3">
+    <h2 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Você no pod</h2>
+    {% if player_card.games %}
+    <dl class="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+      <div>
+        <dt class="text-[11px] text-gray-400 uppercase tracking-wider">Win rate</dt>
+        <dd class="font-bold text-gray-900">{{ player_card.win_rate }}%</dd>
+        <dd class="text-xs text-gray-500">{{ player_card.wins }} de {{ player_card.games }} partidas</dd>
+      </div>
+      <div>
+        <dt class="text-[11px] text-gray-400 uppercase tracking-wider">Pontos</dt>
+        <dd class="font-bold text-gray-900">{{ player_card.points }} pts</dd>
+        <dd class="text-xs text-gray-500">{{ player_card.points_rank }}º no ranking</dd>
+      </div>
+      <div>
+        <dt class="text-[11px] text-gray-400 uppercase tracking-wider">Sequência</dt>
+        <dd class="font-bold text-gray-900">
+          {% if player_card.streak.kind == "wins" %}🔥 {{ player_card.streak.count }} vitória{{ player_card.streak.count|pluralize }} seguida{{ player_card.streak.count|pluralize }}
+          {% else %}{{ player_card.streak.count }} sem vencer{% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-[11px] text-gray-400 uppercase tracking-wider">First bloods</dt>
+        <dd class="font-bold text-gray-900">{{ player_card.first_bloods }}</dd>
+      </div>
+    </dl>
+    {% else %}
+    <p class="text-sm text-gray-500">Sem partidas ainda.</p>
+    {% endif %}
+  </div>
+
+  {% if player_card.comfort_deck or player_card.favorite_color_combo or player_card.favorite_wincon %}
+  <div class="px-4 py-3 border-t border-gray-100 space-y-1">
+    <h3 class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Zona de conforto</h3>
+    {% if player_card.comfort_deck %}
+    <p class="text-sm font-semibold text-gray-900">{{ player_card.comfort_deck.deck.display_commanders }}</p>
+    <p class="text-xs text-gray-500">{{ player_card.comfort_deck.share }}% das suas partidas</p>
+    {% endif %}
+    <p class="text-xs text-gray-500">
+      {% if player_card.favorite_color_combo %}Cores: {{ player_card.favorite_color_combo.identity }}{% endif %}
+      {% if player_card.favorite_color_combo and player_card.favorite_wincon %} · {% endif %}
+      {% if player_card.favorite_wincon %}Wincon: {{ player_card.favorite_wincon.label }}{% endif %}
+    </p>
+  </div>
+  {% endif %}
+
+  {% if weekly_theme %}
+  {% with theme=weekly_theme.theme %}
+  <div class="border-t border-gray-100">
+    <div class="px-4 pt-3 flex items-center justify-between">
+      <h3 class="text-[11px] font-bold text-orange-600 uppercase tracking-wider">Tema da Semana</h3>
+      <form method="post" action="{% url 'core:weekly-theme-reroll' pod_slug=pod.slug %}">
+        {% csrf_token %}
+        <input type="hidden" name="days" value="{{ active_window }}">
+        <button type="submit" {% if not weekly_theme.rerolls_left %}disabled{% endif %}
+          title="Trocar o tema"
+          class="text-xs font-semibold text-gray-600 border border-gray-200 rounded-md px-2 py-1 hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed">
+          ⟳ {{ weekly_theme.rerolls_left }} troca{{ weekly_theme.rerolls_left|pluralize }}
+        </button>
+      </form>
+    </div>
+    {% if theme.art_crop_url %}
+    <img src="{{ theme.art_crop_url }}" alt="" class="mt-3 w-full h-28 object-cover" loading="lazy">
+    {% endif %}
+    <div class="p-4 space-y-1">
+      <p class="text-lg font-black uppercase tracking-wide text-gray-900">{{ theme.name }}</p>
+      <p class="text-xs text-gray-400">{{ theme.display_num_decks }}</p>
+      {% if theme.top_commander_names %}
+      <p class="text-xs text-gray-500">{{ theme.top_commander_names|join:" · " }}</p>
+      {% endif %}
+      {% if theme.summary %}
+      <p class="text-sm text-gray-700 pt-1">{{ theme.summary }}</p>
+      {% else %}
+      <p class="text-sm text-gray-400 italic pt-1" data-summary-url="{{ weekly_theme_summary_url }}">gerando resumo…</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+</section>

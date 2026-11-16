@@ -15,11 +15,13 @@ from apps.core.views import (
     MyProfileView,
     PlayerListView,
     PlayerProfileView,
+    RerollWeeklyThemeView,
     ThemeDrawCreateView,
     ThemeDrawDetailView,
     ThemeDrawListView,
     ThemeDrawRecapView,
     ThemeSummaryView,
+    WeeklyThemeSummaryView,
 )
 
 urlpatterns = [
@@ -55,4 +57,6 @@ urlpatterns = [
         ThemeDrawRecapView.as_view(),
         name="theme-draw-recap",
     ),
+    path("meu-tema/trocar/", RerollWeeklyThemeView.as_view(), name="weekly-theme-reroll"),
+    path("meu-tema/resumo/", WeeklyThemeSummaryView.as_view(), name="weekly-theme-summary"),
 ]

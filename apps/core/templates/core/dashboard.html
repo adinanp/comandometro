@@ -1,7 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6 lg:items-start">
+
+{% if player_card %}
+<aside class="lg:order-last lg:sticky lg:top-6">
+  {% include "core/_player_card.html" %}
+</aside>
+{% endif %}
+
+<div class="space-y-6 min-w-0">
 
   <!-- Header / Overview -->
   <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -449,10 +457,29 @@
   </div>
 
 </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+  // Resumo do tema semanal: a página não espera a LLM.
+  document.querySelectorAll("[data-summary-url]").forEach(function (el) {
+    fetch(el.dataset.summaryUrl, { headers: { Accept: "application/json" } })
+      .then(function (resp) {
+        if (!resp.ok) throw new Error(resp.status);
+        return resp.json();
+      })
+      .then(function (data) {
+        if (!data.summary) throw new Error("sem resumo");
+        el.textContent = data.summary;
+        el.classList.remove("text-gray-400", "italic");
+        el.classList.add("text-gray-700");
+      })
+      .catch(function () {
+        el.remove();
+      });
+  });
+
   // Segmented control de "Explorar Métricas" — mostra 1 painel por vez em
   // vez de empilhar vários accordions; puro client-side sobre HTML já
   // renderizado pelo servidor (nenhum dado é buscado de novo ao trocar de

@@ -17,6 +17,7 @@ from .theme_draw_detail import ThemeDrawDetailView
 from .theme_draw_list import ThemeDrawListView
 from .theme_summary import ThemeSummaryView
 from .theme_draw_recap import ThemeDrawRecapView
+from .weekly_theme import RerollWeeklyThemeView, WeeklyThemeSummaryView
 
 __all__ = [
     "DashboardView",
@@ -39,4 +40,6 @@ __all__ = [
     "ThemeDrawListView",
     "ThemeSummaryView",
     "ThemeDrawRecapView",
+    "RerollWeeklyThemeView",
+    "WeeklyThemeSummaryView",
 ]
