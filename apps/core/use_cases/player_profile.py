@@ -3,9 +3,10 @@ from datetime import date
 from django.db.models import Count, Max, Q
 from django.db.models.functions import TruncMonth
 
-from apps.core.models import Deck, Player, wincon_label
+from apps.core.models import Deck, Player
 from apps.core.use_cases.base import BaseUseCase
 from apps.core.use_cases.pod_insights import POINTS_BY_PLACEMENT
+from apps.core.use_cases.player_stats import favorite_color_combo, favorite_wincon
 
 
 class PlayerProfileUseCase(BaseUseCase):
@@ -82,50 +83,10 @@ class PlayerProfileUseCase(BaseUseCase):
         return max(played, key=lambda row: row["games"]) if played else None
 
     def _favorite_wincon(self, performances):
-        """Wincon mais comum entre as partidas em que esse jogador ficou em
-        1º lugar."""
-        top = (
-            performances.filter(placement=1)
-            .values("game__win_condition")
-            .annotate(count=Count("id"))
-            .order_by("-count")
-            .first()
-        )
-        if not top:
-            return None
-        return {"label": wincon_label(top["game__win_condition"]), "count": top["count"]}
+        return favorite_wincon(performances)
 
     def _favorite_color_combo(self, player):
-        """
-        Combinação exata de cores (color identity) mais jogada entre os
-        decks desse jogador, pesada pelo número de partidas de cada deck —
-        não a união de todas as cores já pilotadas, que convergiria pra
-        "WUBRG" conforme o jogador testasse mais decks diferentes ao longo
-        do tempo e deixaria de dizer qualquer coisa sobre preferência. Dois
-        decks diferentes com a mesma combinação somam no mesmo grupo.
-        Empate é desempatado pela partida mais recente, mesmo critério dos
-        cards de especialista do dashboard.
-        """
-        decks = Deck.objects.filter(player=player).annotate(
-            games=Count("match_performances"),
-            last_game=Max("match_performances__game__date"),
-        ).filter(games__gt=0)
-        buckets = {}
-        for identity, games, last_game in decks.values_list(
-            "color_identity", "games", "last_game"
-        ):
-            key = identity or "C"
-            bucket = buckets.setdefault(key, {"games": 0, "last_game": None})
-            bucket["games"] += games
-            if last_game and (bucket["last_game"] is None or last_game > bucket["last_game"]):
-                bucket["last_game"] = last_game
-        if not buckets:
-            return None
-        identity, data = max(
-            buckets.items(),
-            key=lambda item: (item[1]["games"], item[1]["last_game"] or date.min),
-        )
-        return {"identity": identity, "games": data["games"]}
+        return favorite_color_combo(player)
 
     def _win_rate_trend(self, performances):
         monthly = (
