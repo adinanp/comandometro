@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6 max-w-xl">
+
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Sorteio de temas</h1>
+    <p class="text-sm text-gray-500">
+      Escolha {{ players_per_draw }} jogadores e cada um recebe um tema de EDH
+      diferente do EDHREC. Temas já sorteados no pod nesta semana não se repetem.
+    </p>
+  </div>
+
+  {% if not enough_players %}
+  <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl p-4">
+    O sorteio precisa de pelo menos {{ players_per_draw }} jogadores no pod.
+  </div>
+  {% else %}
+  <form method="post" class="bg-white border border-gray-200 rounded-xl shadow-sm p-5 space-y-4">
+    {% csrf_token %}
+
+    {% if form.non_field_errors or form.players.errors %}
+    <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 space-y-1">
+      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      {% for error in form.players.errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+
+    <fieldset class="grid grid-cols-2 gap-2">
+      {% for checkbox in form.players %}
+      <label class="flex items-center gap-2 text-sm border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50">
+        {{ checkbox.tag }}
+        <span class="font-medium text-gray-900">{{ checkbox.choice_label }}</span>
+      </label>
+      {% endfor %}
+    </fieldset>
+
+    <button type="submit" class="w-full bg-gray-900 text-white text-sm font-semibold rounded-lg py-2.5 hover:bg-gray-800 transition">
+      Sortear
+    </button>
+  </form>
+  {% endif %}
+
+</div>
+{% endblock %}

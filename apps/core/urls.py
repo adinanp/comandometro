@@ -15,6 +15,9 @@ from apps.core.views import (
     MyProfileView,
     PlayerListView,
     PlayerProfileView,
+    ThemeDrawCreateView,
+    ThemeDrawDetailView,
+    ThemeSummaryView,
 )
 
 urlpatterns = [
@@ -33,4 +36,15 @@ urlpatterns = [
     path("decks/<int:pk>/", DeckDetailView.as_view(), name="deck-detail"),
     path("decks/<int:pk>/lista/", DeckDecklistView.as_view(), name="deck-decklist"),
     path("decks/<int:pk>/excluir/", DeckDeleteView.as_view(), name="deck-delete"),
+    path("sorteio-de-temas/", ThemeDrawCreateView.as_view(), name="theme-draw-create"),
+    path(
+        "sorteio-de-temas/<int:pk>/",
+        ThemeDrawDetailView.as_view(),
+        name="theme-draw-detail",
+    ),
+    path(
+        "sorteio-de-temas/<int:pk>/resumo/<int:theme_id>/",
+        ThemeSummaryView.as_view(),
+        name="theme-summary",
+    ),
 ]

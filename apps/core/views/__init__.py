@@ -12,6 +12,9 @@ from .deck_create import DeckCreateView
 from .deck_create_ajax import DeckCreateAjaxView
 from .deck_list import DeckListView
 from .deck_decklist import DeckDecklistView
+from .theme_draw_create import ThemeDrawCreateView
+from .theme_draw_detail import ThemeDrawDetailView
+from .theme_summary import ThemeSummaryView
 
 __all__ = [
     "DashboardView",
@@ -29,4 +32,7 @@ __all__ = [
     "DeckCreateAjaxView",
     "DeckListView",
     "DeckDecklistView",
+    "ThemeDrawCreateView",
+    "ThemeDrawDetailView",
+    "ThemeSummaryView",
 ]
