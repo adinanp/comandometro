@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from datetime import timezone as dt_timezone
 from unittest import mock
 
@@ -9,8 +9,12 @@ from django.urls import reverse
 
 from apps.cards.edhrec import EdhrecError
 from apps.cards.models import Card, Theme
-from apps.core.models import Deck, Player, PlayerWeeklyTheme
-from apps.core.use_cases import EnsureWeeklyThemeUseCase, RerollWeeklyThemeUseCase
+from apps.core.models import Deck, Game, GameParticipant, Player, PlayerWeeklyTheme
+from apps.core.use_cases import (
+    EnsureWeeklyThemeUseCase,
+    PlayerPodCardUseCase,
+    RerollWeeklyThemeUseCase,
+)
 from apps.core.use_cases.draw_themes import week_start
 from apps.core.use_cases.weekly_theme import eligible_weekly_themes
 from apps.pods.models import Membership, Pod
@@ -209,3 +213,110 @@ class WeeklyThemeTests(PlayerCardFixtureMixin, TestCase):
     def test_empty_catalog_returns_none(self):
         self.assertIsNone(EnsureWeeklyThemeUseCase().execute(self.player, now=MONDAY_EARLY))
         self.assertEqual(self._rows().count(), 0)
+
+
+class PlayerPodCardTests(PlayerCardFixtureMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        self.others = [
+            Player.objects.create(pod=self.pod, name=name) for name in ("Beto", "Caio", "Duda")
+        ]
+        self.deck_x = Deck.objects.create(player=self.player)
+        self.deck_y = Deck.objects.create(player=self.player)
+
+    def _game(self, placement, day=1, deck=None, game_date=True, first_blood=None):
+        game = Game.objects.create(
+            pod=self.pod,
+            date=date(2026, 10, day) if game_date else None,
+            first_blood_player=first_blood,
+        )
+        GameParticipant.objects.create(game=game, player=self.player, placement=placement, deck=deck)
+        return game
+
+    def _card(self):
+        return PlayerPodCardUseCase().execute(self.player)
+
+    def test_win_rate_and_points(self):
+        for day, placement in enumerate((1, 2, 3, 4), start=1):
+            self._game(placement, day=day)
+
+        card = self._card()
+
+        self.assertEqual((card["games"], card["wins"], card["win_rate"]), (4, 1, 25.0))
+        self.assertEqual(card["points"], 7)
+
+    def test_points_rank_competition_with_ties(self):
+        beto, caio, duda = self.others
+
+        def play(player, placement, day):
+            game = Game.objects.create(pod=self.pod, date=date(2026, 10, day))
+            GameParticipant.objects.create(game=game, player=player, placement=placement)
+
+        play(self.player, 1, 1)
+        play(self.player, 1, 2)
+        play(self.player, 2, 3)  # Ana 10
+        play(beto, 1, 4)
+        play(beto, 3, 5)
+        play(beto, 2, 6)  # Beto 7
+        play(caio, 1, 7)
+        play(caio, 3, 8)
+        play(caio, 2, 9)  # Caio 7; Duda sem partidas
+
+        ranks = {
+            p.name: PlayerPodCardUseCase().execute(p)["points_rank"]
+            for p in [self.player, beto, caio, duda]
+        }
+
+        self.assertEqual(ranks, {"Ana": 1, "Beto": 2, "Caio": 2, "Duda": 4})
+
+    def test_streak_wins(self):
+        self._game(3, day=1)
+        self._game(1, day=2)
+        self._game(1, day=3)
+
+        self.assertEqual(self._card()["streak"], {"kind": "wins", "count": 2})
+
+    def test_streak_winless_orders_by_date_then_id_and_undated_last(self):
+        self._game(1, day=5)
+        self._game(2, day=6)
+        self._game(4, day=6)  # mesmo dia, id maior = mais recente
+        self._game(1, game_date=False)  # sem data conta como a mais antiga
+
+        self.assertEqual(self._card()["streak"], {"kind": "winless", "count": 2})
+
+    def test_first_bloods(self):
+        self._game(2, day=1, first_blood=self.player)
+        self._game(3, day=2, first_blood=self.player)
+        self._game(1, day=3, first_blood=self.others[0])
+
+        self.assertEqual(self._card()["first_bloods"], 2)
+
+    def test_comfort_deck_share(self):
+        for day in (1, 2, 3):
+            self._game(2, day=day, deck=self.deck_x)
+        for day in (4, 5):
+            self._game(2, day=day, deck=self.deck_y)
+
+        comfort = self._card()["comfort_deck"]
+
+        self.assertEqual(comfort["deck"], self.deck_x)
+        self.assertEqual((comfort["games"], comfort["share"]), (3, 60.0))
+
+    def test_comfort_deck_ignores_deleted_deck(self):
+        self._game(2, day=1, deck=self.deck_x)
+        self._game(2, day=2, deck=None)
+        self._game(2, day=3, deck=None)
+
+        card = self._card()
+
+        self.assertEqual(card["games"], 3)
+        self.assertEqual(card["comfort_deck"]["deck"], self.deck_x)
+        self.assertEqual(card["comfort_deck"]["share"], 33.3)
+
+    def test_no_games(self):
+        card = self._card()
+
+        self.assertEqual((card["games"], card["wins"], card["win_rate"], card["points"]), (0, 0, 0, 0))
+        self.assertIsNone(card["streak"])
+        self.assertIsNone(card["comfort_deck"])
+        self.assertEqual(card["first_bloods"], 0)
