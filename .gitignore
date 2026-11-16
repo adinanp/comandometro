@@ -71,3 +71,6 @@ htmlcov/
 .ruff_cache/
 .mypy_cache/
 .pylintcache
+
+# Superpowers brainstorm mockups
+.superpowers/
