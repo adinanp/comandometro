@@ -320,3 +320,102 @@ class PlayerPodCardTests(PlayerCardFixtureMixin, TestCase):
         self.assertIsNone(card["streak"])
         self.assertIsNone(card["comfort_deck"])
         self.assertEqual(card["first_bloods"], 0)
+
+
+SUMMARY = "apps.cards.use_cases.theme_summary.EnsureThemeSummaryUseCase.perform_request"
+
+
+class PlayerCardViewTests(PlayerCardFixtureMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        for i in range(6):
+            Theme.objects.create(slug=f"tema-{i}", name=f"Tema Numero {i}", popularity_rank=i)
+        deck = Deck.objects.create(player=self.player)
+        deck.commanders.set([Card.objects.create(name="Teysa Karlov", is_commander_eligible=True)])
+        game = Game.objects.create(pod=self.pod, date=date(2026, 10, 1))
+        GameParticipant.objects.create(game=game, player=self.player, placement=1, deck=deck)
+        self.dashboard = reverse("core:dashboard", kwargs={"pod_slug": self.pod.slug})
+        self.reroll = reverse("core:weekly-theme-reroll", kwargs={"pod_slug": self.pod.slug})
+        self.summary = reverse("core:weekly-theme-summary", kwargs={"pod_slug": self.pod.slug})
+
+    def _current_theme(self):
+        return PlayerWeeklyTheme.objects.filter(player=self.player).first().theme
+
+    def test_card_shows_for_member_with_player(self):
+        response = self.client.get(self.dashboard)
+
+        self.assertContains(response, "Você no pod")
+        self.assertContains(response, "100,0%")
+        self.assertContains(response, "Teysa Karlov")
+        self.assertContains(response, self._current_theme().name)
+        self.assertContains(response, "2 trocas")
+
+    def test_no_player_no_card(self):
+        self.player.delete()
+
+        response = self.client.get(self.dashboard)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Você no pod")
+
+    def test_dashboard_does_not_call_edhrec_or_llm(self):
+        with mock.patch("urllib.request.urlopen") as urlopen, mock.patch(
+            "apps.cards.llm.generate_text"
+        ) as generate:
+            self.client.get(self.dashboard)
+
+        urlopen.assert_not_called()
+        generate.assert_not_called()
+
+    def test_reroll_post_changes_theme_and_redirects(self):
+        self.client.get(self.dashboard)
+        before = self._current_theme()
+
+        response = self.client.post(self.reroll)
+
+        self.assertRedirects(response, self.dashboard, fetch_redirect_response=False)
+        self.assertNotEqual(self._current_theme(), before)
+        self.assertContains(self.client.get(self.dashboard), "1 troca")
+
+    def test_reroll_preserves_days_filter(self):
+        response = self.client.post(self.reroll, {"days": "7"})
+
+        self.assertRedirects(response, f"{self.dashboard}?days=7", fetch_redirect_response=False)
+
+    def test_reroll_without_rerolls_shows_message(self):
+        self.client.get(self.dashboard)
+        self.client.post(self.reroll)
+        self.client.post(self.reroll)
+        theme = self._current_theme()
+
+        response = self.client.post(self.reroll, follow=True)
+
+        self.assertContains(response, "Você já usou as 2 trocas desta semana.")
+        self.assertEqual(self._current_theme(), theme)
+
+    def test_non_member_404(self):
+        outsider = get_user_model().objects.create_user(username="ze", password="x")
+        self.client.force_login(outsider)
+
+        self.assertEqual(self.client.post(self.reroll).status_code, 404)
+        self.assertEqual(self.client.get(self.summary).status_code, 404)
+
+    def test_reroll_get_not_allowed(self):
+        self.assertEqual(self.client.get(self.reroll).status_code, 405)
+
+    def test_summary_endpoint_returns_current_theme_summary(self):
+        self.client.get(self.dashboard)
+
+        with mock.patch(SUMMARY, return_value="Resumo do tema.") as ensure:
+            response = self.client.get(self.summary)
+
+        self.assertEqual(response.json(), {"summary": "Resumo do tema."})
+        self.assertEqual(ensure.call_args.args[0], self._current_theme())
+
+    def test_card_without_catalog_hides_theme_block(self):
+        Theme.objects.all().delete()
+
+        response = self.client.get(self.dashboard)
+
+        self.assertContains(response, "Você no pod")
+        self.assertNotContains(response, "Tema da Semana")
