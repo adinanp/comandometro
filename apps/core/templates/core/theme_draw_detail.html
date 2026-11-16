@@ -58,67 +58,132 @@
   </div>
 
 </div>
+
+<div id="recap-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="recap-modal-title">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-5 space-y-4 max-h-full overflow-y-auto">
+    <div class="flex items-center justify-between">
+      <h2 id="recap-modal-title" class="text-sm font-bold text-gray-900">Imagem do sorteio</h2>
+      <button type="button" id="recap-modal-close" class="text-gray-400 hover:text-gray-700" aria-label="Fechar">✕</button>
+    </div>
+    <div class="rounded-lg bg-gray-100 flex items-center justify-center min-h-48">
+      <p id="recap-loading" class="text-sm text-gray-400">Gerando imagem…</p>
+      <img id="recap-preview" alt="Prévia da imagem do sorteio" class="hidden w-full max-h-[60vh] object-contain rounded-lg">
+    </div>
+    <p id="recap-status" class="hidden text-xs text-center"></p>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" id="recap-copy" disabled
+        class="flex-1 bg-gray-900 text-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-gray-800 transition disabled:opacity-50">
+        Copiar imagem
+      </button>
+      <button type="button" id="recap-share" disabled
+        class="hidden flex-1 border border-gray-300 text-gray-800 text-sm font-semibold rounded-lg px-4 py-2 hover:bg-gray-50 transition disabled:opacity-50">
+        Compartilhar
+      </button>
+      <a id="recap-download" href="#" download="sorteio-de-temas-{{ draw.pk }}.png"
+        class="hidden flex-1 text-center border border-gray-300 text-gray-800 text-sm font-semibold rounded-lg px-4 py-2 hover:bg-gray-50 transition">
+        Baixar
+      </a>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
   (function () {
-    // 1º toque gera a imagem. No celular, o botão vira "Compartilhar" e o
-    // 2º toque chama navigator.share() — o share precisa de um toque recente,
-    // e a geração pode passar da janela de ativação do navegador.
-    var button = document.getElementById("share-recap");
-    var label = button.textContent.trim();
-    var readyFile = null;
+    // "Gerar imagem" abre um modal com a prévia. Copiar usa a área de
+    // transferência (colar direto no WhatsApp); Compartilhar aparece só onde
+    // o navegador aceita compartilhar arquivos; Baixar fica de reserva.
+    var openButton = document.getElementById("share-recap");
+    var modal = document.getElementById("recap-modal");
+    var preview = document.getElementById("recap-preview");
+    var loading = document.getElementById("recap-loading");
+    var statusBox = document.getElementById("recap-status");
+    var copyButton = document.getElementById("recap-copy");
+    var shareButton = document.getElementById("recap-share");
+    var downloadLink = document.getElementById("recap-download");
+    var canCopy = !!(navigator.clipboard && window.ClipboardItem);
+    var currentFile = null;
+    var objectUrl = null;
 
-    function download(file) {
-      var link = document.createElement("a");
-      link.href = URL.createObjectURL(file);
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+    function setStatus(message, isError) {
+      statusBox.textContent = message;
+      statusBox.classList.toggle("hidden", !message);
+      statusBox.classList.toggle("text-red-600", !!isError);
+      statusBox.classList.toggle("text-green-700", !isError);
     }
 
-    function reset() {
-      readyFile = null;
-      button.disabled = false;
-      button.textContent = label;
-    }
+    function openModal() {
+      currentFile = null;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+      preview.classList.add("hidden");
+      preview.removeAttribute("src");
+      loading.textContent = "Gerando imagem…";
+      loading.classList.remove("hidden");
+      copyButton.disabled = true;
+      shareButton.disabled = true;
+      shareButton.classList.add("hidden");
+      downloadLink.classList.add("hidden");
+      setStatus("");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
 
-    button.addEventListener("click", function () {
-      if (readyFile) {
-        var file = readyFile;
-        navigator.share({ files: [file] })
-          .catch(function (err) {
-            if (!err || err.name !== "AbortError") download(file);
-          })
-          .finally(reset);
-        return;
-      }
-
-      button.disabled = true;
-      button.textContent = "Gerando…";
-      fetch(button.dataset.recapUrl)
+      fetch(openButton.dataset.recapUrl)
         .then(function (resp) {
           if (!resp.ok) throw new Error(resp.status);
           return resp.blob();
         })
         .then(function (blob) {
-          var file = new File([blob], button.dataset.filename, { type: "image/png" });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            readyFile = file;
-            button.disabled = false;
-            button.textContent = "Compartilhar";
-            return;
+          currentFile = new File([blob], openButton.dataset.filename, { type: "image/png" });
+          objectUrl = URL.createObjectURL(blob);
+          preview.src = objectUrl;
+          preview.classList.remove("hidden");
+          loading.classList.add("hidden");
+          downloadLink.href = objectUrl;
+          downloadLink.classList.remove("hidden");
+          copyButton.disabled = !canCopy;
+          if (!canCopy) setStatus("Este navegador não copia imagens. Use Baixar.", true);
+          if (navigator.canShare && navigator.canShare({ files: [currentFile] })) {
+            shareButton.disabled = false;
+            shareButton.classList.remove("hidden");
           }
-          download(file);
-          reset();
         })
         .catch(function () {
-          alert("Não foi possível gerar a imagem. Tente de novo.");
-          reset();
+          loading.textContent = "Não foi possível gerar a imagem. Feche e tente de novo.";
         });
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    openButton.addEventListener("click", openModal);
+    document.getElementById("recap-modal-close").addEventListener("click", closeModal);
+    modal.addEventListener("click", function (event) {
+      if (event.target === modal) closeModal();
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+    });
+
+    copyButton.addEventListener("click", function () {
+      if (!currentFile) return;
+      navigator.clipboard
+        .write([new ClipboardItem({ "image/png": currentFile })])
+        .then(function () {
+          setStatus("Imagem copiada! É só colar no grupo.", false);
+        })
+        .catch(function () {
+          setStatus("Não foi possível copiar. Use Baixar.", true);
+        });
+    });
+
+    shareButton.addEventListener("click", function () {
+      if (!currentFile) return;
+      navigator.share({ files: [currentFile] }).catch(function () {});
     });
   })();
 
