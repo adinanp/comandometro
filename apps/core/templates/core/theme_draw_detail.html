@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Sorteio de temas</h1>
+      <p class="text-sm text-gray-500">{{ draw.created_at|date:"d/m/Y H:i" }}</p>
+    </div>
+    <a href="{% url 'core:theme-draw-create' pod_slug=pod.slug %}" class="text-sm text-gray-600 underline hover:text-gray-900">
+      Novo sorteio
+    </a>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    {% for card in cards %}
+    <article class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+      {% if card.theme.art_crop_url %}
+      <img src="{{ card.theme.art_crop_url }}" alt="" class="w-full h-32 object-cover" loading="lazy">
+      {% else %}
+      <div class="w-full h-32 bg-gray-100"></div>
+      {% endif %}
+      <div class="p-4 space-y-2 flex-1">
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="font-bold text-gray-900">{{ card.player }}</span>
+          <span class="text-xs text-gray-400 whitespace-nowrap">{{ card.theme.display_num_decks }}</span>
+        </div>
+        <h2 class="text-lg font-black uppercase tracking-wide text-orange-600">{{ card.theme.name }}</h2>
+        {% if card.commanders %}
+        <div class="text-xs text-gray-500">
+          <span class="font-semibold text-gray-600">Top comandantes:</span>
+          {{ card.commanders|join:" · " }}
+        </div>
+        {% endif %}
+        {% if card.theme.summary %}
+        <p class="text-sm text-gray-700">{{ card.theme.summary }}</p>
+        {% elif card.summary_url %}
+        <p class="text-sm text-gray-400 italic" data-summary-url="{{ card.summary_url }}">gerando resumo…</p>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll("[data-summary-url]").forEach(function (el) {
+    fetch(el.dataset.summaryUrl, { headers: { Accept: "application/json" } })
+      .then(function (resp) {
+        if (!resp.ok) throw new Error(resp.status);
+        return resp.json();
+      })
+      .then(function (data) {
+        if (!data.summary) throw new Error("sem resumo");
+        el.textContent = data.summary;
+        el.classList.remove("text-gray-400", "italic");
+        el.classList.add("text-gray-700");
+        el.removeAttribute("data-summary-url");
+      })
+      .catch(function () {
+        el.remove();
+      });
+  });
+</script>
+{% endblock %}

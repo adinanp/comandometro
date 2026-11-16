@@ -158,6 +158,9 @@
           <a href="{% url 'core:player-list' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
             >Jogadores</a
           >
+          <a href="{% url 'core:theme-draw-create' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
+            >Sorteio de temas</a
+          >
           {% if membership.is_owner %}
           <a href="{% url 'pod:pod-settings' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
             >Configurações</a
