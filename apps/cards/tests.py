@@ -281,3 +281,14 @@ class SyncThemesRobustnessTests(SyncThemesTests):
 
         self.assertEqual(result["failed"], ["voltron"])
         self.assertEqual(result["ok"], 1)
+
+
+class CleanSummaryEdgeCaseTests(TestCase):
+    def test_keeps_only_first_paragraph_and_strips_inner_quotes(self):
+        self.assertEqual(
+            clean_summary("\"'Resumo: ok'\n\nNota: extra"),
+            "ok",
+        )
+
+    def test_strips_markdown_emphasis_and_prefix(self):
+        self.assertEqual(clean_summary("**Resumo:** _Sacrifica_ criaturas."), "Sacrifica criaturas.")

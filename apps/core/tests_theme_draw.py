@@ -10,7 +10,9 @@ from PIL import Image, ImageDraw
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
@@ -131,6 +133,23 @@ class DrawThemesUseCaseTests(ThemeDrawFixtureMixin, TestCase):
 
         self.assertEqual(ThemeDraw.objects.count(), 0)
 
+    def test_locks_pod_before_reading_eligible_themes(self):
+        # Dois sorteios simultâneos no mesmo pod não podem ler a mesma lista
+        # de elegíveis: o pod é travado antes de consultar os temas da semana.
+        make_themes(10)
+
+        with CaptureQueriesContext(connection) as queries:
+            self._draw()
+
+        sqls = [q["sql"] for q in queries.captured_queries]
+        lock_index = next(
+            i for i, sql in enumerate(sqls) if "FOR UPDATE" in sql and "pods_pod" in sql
+        )
+        seat_read_index = next(
+            i for i, sql in enumerate(sqls) if "core_themedrawseat" in sql and "SELECT" in sql
+        )
+        self.assertLess(lock_index, seat_read_index)
+
     def test_rejects_empty_catalog(self):
         with self.assertRaises(ValidationError):
             self._draw()
@@ -211,6 +230,25 @@ class ThemeDrawViewTests(ThemeDrawViewMixin, TestCase):
                 self.assertTrue(response.context["form"].errors)
 
         self.assertEqual(ThemeDraw.objects.count(), 0)
+
+    def test_repeated_player_id_is_rejected(self):
+        self._themes_with_data()
+        a, b, c, _ = self.players
+
+        response = self.client.post(self.create_url, {"players": [a.pk, a.pk, b.pk, c.pk]})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors)
+        self.assertEqual(ThemeDraw.objects.count(), 0)
+
+    def test_summary_endpoint_unknown_theme_returns_404(self):
+        draw = self._draw()
+
+        with mock.patch(SUMMARY) as generate:
+            response = self.client.get(self._urls(draw, 999999)["summary"])
+
+        self.assertEqual(response.status_code, 404)
+        generate.assert_not_called()
 
     def test_pod_with_fewer_than_four_players_shows_message(self):
         self.players[3].delete()
@@ -389,6 +427,15 @@ class ThemeDrawRecapRobustnessTests(ThemeDrawViewMixin, TestCase):
             return response
 
         with mock.patch(RECAP_URLOPEN, side_effect=truncated):
+            png = ThemeDrawRecapUseCase().execute(draw)
+
+        self.assertEqual(Image.open(io.BytesIO(png)).size, (1080, 1350))
+
+    def test_empty_theme_and_commander_names_do_not_crash(self):
+        draw = self._draw()
+        Theme.objects.update(name="", top_commanders=[{"name": "", "num_decks": 1}])
+
+        with mock.patch(RECAP_URLOPEN, side_effect=urllib.error.URLError("down")):
             png = ThemeDrawRecapUseCase().execute(draw)
 
         self.assertEqual(Image.open(io.BytesIO(png)).size, (1080, 1350))
