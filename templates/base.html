@@ -158,7 +158,7 @@
           <a href="{% url 'core:player-list' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
             >Jogadores</a
           >
-          <a href="{% url 'core:theme-draw-create' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
+          <a href="{% url 'core:theme-draw-list' pod_slug=pod.slug %}" class="hover:text-gray-900 transition"
             >Sorteio de temas</a
           >
           {% if membership.is_owner %}

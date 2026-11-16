@@ -92,6 +92,10 @@ class Theme(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def edhrec_url(self):
+        return f"https://edhrec.com/tags/{self.slug}"
+
     def top_commander_names(self, limit=3):
         return [c["name"] for c in (self.top_commanders or [])[:limit]]
 

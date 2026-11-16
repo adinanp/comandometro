@@ -17,6 +17,7 @@ from apps.core.views import (
     PlayerProfileView,
     ThemeDrawCreateView,
     ThemeDrawDetailView,
+    ThemeDrawListView,
     ThemeDrawRecapView,
     ThemeSummaryView,
 )
@@ -37,7 +38,8 @@ urlpatterns = [
     path("decks/<int:pk>/", DeckDetailView.as_view(), name="deck-detail"),
     path("decks/<int:pk>/lista/", DeckDecklistView.as_view(), name="deck-decklist"),
     path("decks/<int:pk>/excluir/", DeckDeleteView.as_view(), name="deck-delete"),
-    path("sorteio-de-temas/", ThemeDrawCreateView.as_view(), name="theme-draw-create"),
+    path("sorteio-de-temas/", ThemeDrawListView.as_view(), name="theme-draw-list"),
+    path("sorteio-de-temas/novo/", ThemeDrawCreateView.as_view(), name="theme-draw-create"),
     path(
         "sorteio-de-temas/<int:pk>/",
         ThemeDrawDetailView.as_view(),

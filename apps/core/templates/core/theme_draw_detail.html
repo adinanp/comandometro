@@ -9,6 +9,9 @@
       <p class="text-sm text-gray-500">{{ draw.created_at|date:"d/m/Y H:i" }}</p>
     </div>
     <div class="flex items-center gap-3">
+      <a href="{% url 'core:theme-draw-list' pod_slug=pod.slug %}" class="text-sm text-gray-600 underline hover:text-gray-900">
+        Todos os sorteios
+      </a>
       <a href="{% url 'core:theme-draw-create' pod_slug=pod.slug %}" class="text-sm text-gray-600 underline hover:text-gray-900">
         Novo sorteio
       </a>
@@ -34,7 +37,9 @@
           <span class="font-bold text-gray-900">{{ card.player }}</span>
           <span class="text-xs text-gray-400 whitespace-nowrap">{{ card.theme.display_num_decks }}</span>
         </div>
-        <h2 class="text-lg font-black uppercase tracking-wide text-orange-600">{{ card.theme.name }}</h2>
+        <h2 class="text-lg font-black uppercase tracking-wide text-orange-600">
+          <a href="{{ card.theme.edhrec_url }}" target="_blank" rel="noopener" class="hover:underline" title="Ver o tema no EDHREC">{{ card.theme.name }} <span class="text-xs font-semibold normal-case text-gray-400">EDHREC ↗</span></a>
+        </h2>
         {% if card.commanders %}
         <div class="text-xs text-gray-500">
           <span class="font-semibold text-gray-600">Top comandantes:</span>
