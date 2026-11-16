@@ -1,0 +1,19 @@
+# O que NÃO sobe no `gcloud app deploy`. Não inclui o .gitignore de
+# propósito: o staticfiles/ é ignorado no git, mas precisa subir.
+.gcloudignore
+.git/
+.gitignore
+.claude/
+.docs/
+docs/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+secrets.yaml
+docker-compose.yml
+build.sh
+scripts/
+*.sqlite3
