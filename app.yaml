@@ -1,0 +1,36 @@
+# Google App Engine Standard. Deploy via scripts/deploy_gae.sh — não rode
+# `gcloud app deploy` direto, o script prepara static, migrations e secrets.
+runtime: python312
+
+# F1 é a única classe coberta pela cota grátis (28 instance-hours/dia).
+instance_class: F1
+
+# 1 worker + threads: a F1 tem ~384MB de RAM, dois processos Django
+# apertariam. O app é quase todo I/O (Postgres, Scryfall, Gemini).
+entrypoint: gunicorn -b :$PORT config.wsgi:application --workers 1 --threads 8 --timeout 60
+
+# min = max = 1: sempre uma instância de pé (sem cold start) e nunca mais
+# de uma, pra ficar em 24h/dia dentro das 28h grátis. Subir max_instances
+# passa a gerar cobrança.
+automatic_scaling:
+  min_instances: 1
+  max_instances: 1
+
+env_variables:
+  DJANGO_SETTINGS_MODULE: config.settings.production
+
+# Gerado pelo deploy a partir do .env.production (fora do git). O gcloud
+# resolve o include localmente, o arquivo não sobe junto com o código.
+includes:
+  - secrets.yaml
+
+handlers:
+  # Static servido direto pela infra do Google, sem passar pelo gunicorn.
+  # O collectstatic roda localmente no deploy e o staticfiles/ sobe junto.
+  - url: /static
+    static_dir: staticfiles
+    secure: always
+
+  - url: /.*
+    script: auto
+    secure: always

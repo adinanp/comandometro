@@ -1,0 +1,2 @@
+# O App Engine só instala o requirements.txt da raiz.
+-r requirements/production.txt
