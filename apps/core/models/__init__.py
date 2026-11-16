@@ -10,6 +10,7 @@ from .game import (
 from .game_participant import GameParticipant
 from .achievement import Achievement
 from .theme_draw import ThemeDraw, ThemeDrawSeat
+from .player_weekly_theme import PlayerWeeklyTheme
 
 __all__ = [
     "Player",
@@ -25,4 +26,5 @@ __all__ = [
     "Achievement",
     "ThemeDraw",
     "ThemeDrawSeat",
+    "PlayerWeeklyTheme",
 ]
