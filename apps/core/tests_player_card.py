@@ -419,3 +419,18 @@ class PlayerCardViewTests(PlayerCardFixtureMixin, TestCase):
 
         self.assertContains(response, "Você no pod")
         self.assertNotContains(response, "Tema da Semana")
+
+
+class PlayerPodCardForeignDeckTests(PlayerCardFixtureMixin, TestCase):
+    def test_comfort_deck_from_another_player_does_not_break(self):
+        # Admin/registro manual pode vincular a partida a um deck de outro jogador.
+        beto = Player.objects.create(pod=self.pod, name="Beto")
+        borrowed = Deck.objects.create(player=beto)
+        for day in (1, 2):
+            game = Game.objects.create(pod=self.pod, date=date(2026, 10, day))
+            GameParticipant.objects.create(game=game, player=self.player, placement=2, deck=borrowed)
+
+        card = PlayerPodCardUseCase().execute(self.player)
+
+        self.assertEqual(card["comfort_deck"]["deck"], borrowed)
+        self.assertEqual(card["comfort_deck"]["share"], 100.0)

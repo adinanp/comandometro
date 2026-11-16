@@ -18,8 +18,10 @@ EDHREC_HEADERS = {"User-Agent": "Comandometro/1.0", "Accept": "application/json"
 TAGS_PREFIX = "/tags/"
 
 
-# O EDHREC responde 403 (não 404) para páginas inexistentes.
-NOT_FOUND_STATUSES = {403, 404}
+# Páginas inexistentes: o EDHREC serve o JSON de um bucket S3, que responde
+# 403 com <Code>AccessDenied</Code>. Um 403 com outro corpo (WAF, rate limit,
+# IP bloqueado) é erro de verdade e não pode virar "comandante sem temas".
+S3_MISSING_KEY_MARKER = b"<Code>AccessDenied</Code>"
 
 
 class EdhrecError(Exception):
@@ -113,9 +115,20 @@ class EdhrecThemeClient:
             with urllib.request.urlopen(req, timeout=self.timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            if exc.code in NOT_FOUND_STATUSES:
+            if self._is_missing_page(exc):
                 raise EdhrecNotFound(url) from exc
             raise EdhrecError(f"Falha ao buscar {url}: {exc}") from exc
         # OSError cobre URLError/timeout/reset; HTTPException cobre corpo truncado.
         except (OSError, http.client.HTTPException, ValueError) as exc:
             raise EdhrecError(f"Falha ao buscar {url}: {exc}") from exc
+
+    @staticmethod
+    def _is_missing_page(exc):
+        if exc.code == 404:
+            return True
+        if exc.code != 403:
+            return False
+        try:
+            return S3_MISSING_KEY_MARKER in (exc.read() or b"")
+        except Exception:
+            return False

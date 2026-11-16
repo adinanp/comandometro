@@ -1,4 +1,5 @@
 import http.client
+import io
 import json
 import urllib.error
 from pathlib import Path
@@ -94,8 +95,14 @@ class EdhrecRobustnessTests(SimpleTestCase):
         self.assertEqual(commanders, [{"name": "Teysa Karlov", "num_decks": 2}])
 
 
-def _http_error(code):
-    return urllib.error.HTTPError("https://x", code, "err", {}, None)
+S3_ACCESS_DENIED = (
+    b'<?xml version="1.0" encoding="UTF-8"?>\n'
+    b"<Error><Code>AccessDenied</Code><Message>Access Denied</Message></Error>"
+)
+
+
+def _http_error(code, body=b""):
+    return urllib.error.HTTPError("https://x", code, "err", {}, io.BytesIO(body))
 
 
 class CommanderThemesClientTests(SimpleTestCase):
@@ -123,12 +130,19 @@ class CommanderThemesClientTests(SimpleTestCase):
         )
 
     def test_missing_commander_page_returns_empty(self):
-        # O EDHREC responde 403 (não 404) para páginas inexistentes.
-        for code in (403, 404):
+        # Página inexistente: o S3 por trás do EDHREC responde 403 AccessDenied.
+        for code, body in ((403, S3_ACCESS_DENIED), (404, b"")):
             with self.subTest(code=code), mock.patch(
-                "apps.cards.edhrec.urllib.request.urlopen", side_effect=_http_error(code)
+                "apps.cards.edhrec.urllib.request.urlopen", side_effect=_http_error(code, body)
             ):
                 self.assertEqual(EdhrecThemeClient().commander_theme_slugs("Nao Existe"), [])
+
+    def test_blocked_403_is_an_error_not_a_missing_page(self):
+        # 403 de bloqueio (WAF/rate limit) não pode marcar o comandante como sem temas.
+        blocked = _http_error(403, b"<html><title>Attention Required!</title></html>")
+        with mock.patch("apps.cards.edhrec.urllib.request.urlopen", side_effect=blocked):
+            with self.assertRaises(EdhrecError):
+                EdhrecThemeClient().commander_theme_slugs("Atraxa, Praetors' Voice")
 
     def test_server_error_raises(self):
         with mock.patch(
