@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Card
+from .models import Card, Theme
 
 
 @admin.register(Card)
@@ -60,3 +60,20 @@ class CardAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+
+@admin.register(Theme)
+class ThemeAdmin(admin.ModelAdmin):
+    """Somente leitura: temas só entram/atualizam via `sync_edhrec_themes`."""
+
+    list_display = ("name", "num_decks", "popularity_rank", "summary", "edhrec_synced_at")
+    search_fields = ("name", "slug")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
