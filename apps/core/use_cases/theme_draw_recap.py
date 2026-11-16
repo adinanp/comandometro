@@ -191,6 +191,3 @@ class ThemeDrawRecapUseCase(BaseUseCase):
     def _draw_footer(self, canvas):
         y = HEIGHT - 45
         canvas.text((MARGIN, y), "COMANDÔMETRO", font=load_font("display", 25), fill=WHITE, anchor="ls")
-        canvas.text(
-            (WIDTH - MARGIN, y), "sorteio de temas", font=load_font("body", 20), fill=MUTED, anchor="rs"
-        )
